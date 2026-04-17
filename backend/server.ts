@@ -1,9 +1,11 @@
+import dotenv from 'dotenv';
+// Load environment variables immediately before any other imports
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { supabase } from './config/supabase.js';
-
-dotenv.config();
+import apiRouter from './routes/api.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -11,8 +13,7 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-import apiRouter from './routes/api.js';
-
+// Routes
 app.use('/api', apiRouter);
 
 // API Status endpoint

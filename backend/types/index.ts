@@ -1,15 +1,26 @@
-export enum Role {
-  ADMIN = 'ADMIN',
-  BRANCH_MANAGER = 'BRANCH_MANAGER',
-  EMPLOYEE = 'EMPLOYEE',
-  SECRETARY = 'SECRETARY'
-}
+export const UserStatus = {
+  PENDING: 'PENDING',
+  ACTIVE: 'ACTIVE',
+  REJECTED: 'REJECTED'
+} as const;
+
+export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus];
+
+export const Role = {
+  ADMIN: 'ADMIN',
+  BRANCH_MANAGER: 'BRANCH_MANAGER',
+  EMPLOYEE: 'EMPLOYEE',
+  SECRETARY: 'SECRETARY'
+} as const;
+
+export type Role = (typeof Role)[keyof typeof Role];
 
 export interface User {
   id: string; // Document ID often maps to employee_id
   employee_id: string;
   name: string;
-  role: Role;
+  role?: Role;
+  status: UserStatus;
   passwordHash: string;
   createdAt: string; 
   updatedAt: string;
@@ -24,12 +35,14 @@ export interface UserPermissionOverrides {
   updatedAt: string;
 }
 
-export enum DelegationStatus {
-  PENDING = 'PENDING',
-  ACTIVE = 'ACTIVE',
-  EXPIRED = 'EXPIRED',
-  REVOKED = 'REVOKED'
-}
+export const DelegationStatus = {
+  PENDING: 'PENDING',
+  ACTIVE: 'ACTIVE',
+  EXPIRED: 'EXPIRED',
+  REVOKED: 'REVOKED'
+} as const;
+
+export type DelegationStatus = (typeof DelegationStatus)[keyof typeof DelegationStatus];
 
 export interface Delegation {
   id: string;
@@ -41,10 +54,12 @@ export interface Delegation {
   createdAt: string;
 }
 
-export enum RoomType {
-  LECTURE = 'LECTURE',
-  MULTI_PURPOSE = 'MULTI_PURPOSE'
-}
+export const RoomType = {
+  LECTURE: 'LECTURE',
+  MULTI_PURPOSE: 'MULTI_PURPOSE'
+} as const;
+
+export type RoomType = (typeof RoomType)[keyof typeof RoomType];
 
 export interface Room {
   id: string;
@@ -54,27 +69,33 @@ export interface Room {
   isActive: boolean;
 }
 
-export enum BookingType {
-  ACADEMIC_FIXED = 'ACADEMIC_FIXED',
-  ACADEMIC_EXCEPTIONAL = 'ACADEMIC_EXCEPTIONAL',
-  MULTI_PURPOSE = 'MULTI_PURPOSE'
-}
+export const BookingType = {
+  ACADEMIC_FIXED: 'ACADEMIC_FIXED',
+  ACADEMIC_EXCEPTIONAL: 'ACADEMIC_EXCEPTIONAL',
+  MULTI_PURPOSE: 'MULTI_PURPOSE'
+} as const;
 
-export enum BookingStatus {
-  PENDING_ADMIN = 'PENDING_ADMIN',
-  PENDING_BRANCH_MGR = 'PENDING_BRANCH_MGR',
-  APPROVED = 'APPROVED',
-  REJECTED = 'REJECTED'
-}
+export type BookingType = (typeof BookingType)[keyof typeof BookingType];
 
-export enum AASTSlot {
-  SLOT_1_0830 = 1,
-  SLOT_2_1030 = 2,
-  SLOT_3_1230 = 3,
-  SLOT_4_1430 = 4,
-  SLOT_5_1630 = 5,
-  SLOT_6_1830 = 6
-}
+export const BookingStatus = {
+  PENDING_ADMIN: 'PENDING_ADMIN',
+  PENDING_BRANCH_MGR: 'PENDING_BRANCH_MGR',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+} as const;
+
+export type BookingStatus = (typeof BookingStatus)[keyof typeof BookingStatus];
+
+export const AASTSlot = {
+  SLOT_1_0830: 1,
+  SLOT_2_1030: 2,
+  SLOT_3_1230: 3,
+  SLOT_4_1430: 4,
+  SLOT_5_1630: 5,
+  SLOT_6_1830: 6
+} as const;
+
+export type AASTSlot = (typeof AASTSlot)[keyof typeof AASTSlot];
 
 export interface MultiPurposeDetails {
   eventManagerName: string;

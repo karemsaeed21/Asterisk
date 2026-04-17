@@ -5,6 +5,12 @@ export enum Role {
   SECRETARY = 'SECRETARY'
 }
 
+export enum UserStatus {
+  PENDING = 'PENDING',
+  ACTIVE = 'ACTIVE',
+  REJECTED = 'REJECTED'
+}
+
 export enum BookingType {
   ACADEMIC_FIXED = 'ACADEMIC_FIXED',
   ACADEMIC_EXCEPTIONAL = 'ACADEMIC_EXCEPTIONAL',

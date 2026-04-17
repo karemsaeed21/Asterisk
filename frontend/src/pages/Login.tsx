@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ShieldCheck, ArrowRight, Loader2, User, Key, AlertCircle, Eye, EyeOff, Lock, Home, Info, Layers, Fingerprint } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Login: React.FC = () => {
     const [employeeId, setEmployeeId] = useState('');
@@ -73,9 +73,9 @@ const Login: React.FC = () => {
 
                 <div className="flex items-center gap-5">
                     <button className="text-sm font-bold text-gray-300 hover:text-white transition-colors px-4 py-2 hover:bg-white/5 rounded-xl">Login</button>
-                    <button className="text-sm font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-2xl hover:shadow-[0_0_30px_rgba(124,58,237,0.4)] transform transition-all active:scale-95 shadow-lg">
+                    <Link to="/signup" className="text-sm font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-2xl hover:shadow-[0_0_30px_rgba(124,58,237,0.4)] transform transition-all active:scale-95 shadow-lg flex items-center justify-center">
                         Sign Up
-                    </button>
+                    </Link>
                 </div>
             </header>
 
@@ -277,6 +277,12 @@ const Login: React.FC = () => {
                                 </span>
                             </motion.button>
                         </form>
+
+                        <div className="mt-8 text-center pt-8 border-t border-white/5">
+                            <p className="text-sm text-gray-400 font-medium">
+                                New official? <Link to="/signup" className="text-indigo-400 hover:text-white transition-colors font-bold">Request Access Factor</Link>
+                            </p>
+                        </div>
                     </div>
                 </motion.div>
 

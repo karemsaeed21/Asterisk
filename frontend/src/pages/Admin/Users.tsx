@@ -16,7 +16,8 @@ import {
     UserCheck,
     Check,
     RefreshCw,
-    Info
+    Info,
+    CheckCircle2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
@@ -30,6 +31,10 @@ const UserManagement = () => {
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
     const [isDelegationModalOpen, setIsDelegationModalOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<'ALL' | 'PENDING'>('ALL');
+    const [pendingUsers, setPendingUsers] = useState<any[]>([]);
+    const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+    const [selectedRole, setSelectedRole] = useState('');
     
     // Override form state
     const [overrides, setOverrides] = useState({
@@ -48,18 +53,49 @@ const UserManagement = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        const fetchUsers = async () => {
-            try {
+        fetchData();
+    }, [activeTab]);
+
+    const fetchData = async () => {
+        setIsLoading(true);
+        try {
+            if (activeTab === 'ALL') {
                 const res = await api.get('/admin/users');
                 setUsers(res.data.users);
-            } catch (err) {
-                console.error('Failed to fetch users');
-            } finally {
-                setIsLoading(false);
+            } else {
+                const res = await api.get('/admin/users/pending');
+                setPendingUsers(res.data.users);
             }
-        };
-        fetchUsers();
-    }, []);
+        } catch (err) {
+            console.error('Failed to fetch users');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleApprove = async () => {
+        if (!selectedRole) return;
+        setIsSubmitting(true);
+        try {
+            await api.post(`/admin/users/${selectedUser.id}/approve`, { role: selectedRole });
+            setIsApprovalModalOpen(false);
+            fetchData();
+        } catch (err) {
+            alert('Approval failed');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleReject = async (userId: string) => {
+        if (!confirm('Are you sure you want to reject and purge this identity?')) return;
+        try {
+            await api.delete(`/admin/users/${userId}/reject`);
+            fetchData();
+        } catch (err) {
+            alert('Rejection failed');
+        }
+    };
 
     const handleUpdateOverrides = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -136,6 +172,27 @@ const UserManagement = () => {
                 </motion.div>
 
                 <div className="flex gap-4">
+                    <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5 mr-4">
+                        <button 
+                            onClick={() => setActiveTab('ALL')}
+                            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'ALL' ? 'bg-white text-black shadow-lg' : 'text-white/40 hover:text-white'}`}
+                        >
+                            Active Directory
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('PENDING')}
+                            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === 'PENDING' ? 'bg-white text-black shadow-lg' : 'text-white/40 hover:text-white'}`}
+                        >
+                            Pending Clearance
+                            {pendingUsers.length > 0 && activeTab === 'ALL' && (
+                                <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand-primary rounded-full flex items-center justify-center text-[8px] text-white">
+                                    {pendingUsers.length}
+                                </span>
+                            )}
+                        </button>
+                    </div>
+                </div>
+                <div className="flex gap-4">
                     <div className="relative group w-64">
                         <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-brand-secondary transition-colors">
                             <Search size={16} />
@@ -155,61 +212,105 @@ const UserManagement = () => {
             </div>
 
             {/* User Grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredUsers.map((user, i) => (
-                    <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.05 }}
-                        key={user.id}
-                        className="group relative p-8 rounded-[3rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all duration-500 overflow-hidden"
-                    >
-                         <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform">
-                            <Shield size={100} />
-                         </div>
-
-                         <div className="flex items-start justify-between mb-8 relative z-10">
-                            <div className="w-16 h-16 rounded-[1.5rem] bg-gradient-to-br from-white/10 to-transparent border border-white/5 flex items-center justify-center text-white/90 font-display font-black text-2xl shadow-xl">
-                                {user.name.charAt(0)}
+            {/* User Grid */}
+            {activeTab === 'ALL' ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredUsers.map((user, i) => (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.05 }}
+                            key={user.id}
+                            className="group relative p-8 rounded-[3rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all duration-500 overflow-hidden"
+                        >
+                            <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform">
+                                <Shield size={100} />
                             </div>
-                            <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border ${
-                                user.status === 'Active' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                            }`}>
-                                {user.status}
-                            </div>
-                         </div>
 
-                         <div className="space-y-1 relative z-10 mb-8">
-                            <h3 className="text-xl font-display font-medium text-white group-hover:text-brand-primary transition-colors">{user.name}</h3>
-                            <div className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">ID: {user.employee_id}</div>
-                         </div>
-
-                         <div className="pt-6 border-t border-white/5 flex items-center justify-between relative z-10">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-white/5 text-white/40">
-                                    <Shield size={14} />
+                            <div className="flex items-start justify-between mb-8 relative z-10">
+                                <div className="w-16 h-16 rounded-[1.5rem] bg-gradient-to-br from-white/10 to-transparent border border-white/5 flex items-center justify-center text-white/90 font-display font-black text-2xl shadow-xl">
+                                    {user.name.charAt(0)}
                                 </div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-white/60">{user.role.replace('_', ' ')}</span>
+                                <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border ${
+                                    user.status === 'Active' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                }`}>
+                                    {user.status}
+                                </div>
                             </div>
-                            <button 
-                                onClick={() => openOverrideModal(user)}
-                                className="w-8 h-8 rounded-full bg-white/5 text-white/20 flex items-center justify-center hover:bg-white/10 active:scale-90 transition-all"
-                            >
-                                <Lock size={16} />
-                            </button>
-                            <button 
-                                onClick={() => openDelegationModal(user)}
-                                className="w-8 h-8 rounded-full bg-white/5 text-white/20 flex items-center justify-center hover:bg-white/10 active:scale-90 transition-all"
-                            >
-                                <RefreshCw size={16} className="text-brand-secondary/40 shrink-0" />
-                            </button>
-                            <button className="w-8 h-8 rounded-full bg-white/5 text-white/20 flex items-center justify-center hover:bg-white/10 active:scale-90 transition-all">
-                                <MoreVertical size={16} />
-                            </button>
-                         </div>
-                    </motion.div>
-                ))}
-            </div>
+
+                            <div className="space-y-1 relative z-10 mb-8">
+                                <h3 className="text-xl font-display font-medium text-white group-hover:text-brand-primary transition-colors">{user.name}</h3>
+                                <div className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">ID: {user.employee_id}</div>
+                            </div>
+
+                            <div className="pt-6 border-t border-white/5 flex items-center justify-between relative z-10">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-white/5 text-white/40">
+                                        <Shield size={14} />
+                                    </div>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-white/60">{user.role?.replace('_', ' ')}</span>
+                                </div>
+                                <button 
+                                    onClick={() => openOverrideModal(user)}
+                                    className="w-8 h-8 rounded-full bg-white/5 text-white/20 flex items-center justify-center hover:bg-white/10 active:scale-90 transition-all"
+                                >
+                                    <Lock size={16} />
+                                </button>
+                                <button 
+                                    onClick={() => openDelegationModal(user)}
+                                    className="w-8 h-8 rounded-full bg-white/5 text-white/20 flex items-center justify-center hover:bg-white/10 active:scale-90 transition-all"
+                                >
+                                    <RefreshCw size={16} className="text-brand-secondary/40 shrink-0" />
+                                </button>
+                                <button className="w-8 h-8 rounded-full bg-white/5 text-white/20 flex items-center justify-center hover:bg-white/10 active:scale-90 transition-all">
+                                    <MoreVertical size={16} />
+                                </button>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {pendingUsers.length > 0 ? pendingUsers.map((user, i) => (
+                        <motion.div 
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.1 }}
+                            key={user.id} 
+                            className="p-6 rounded-[2rem] bg-white/[0.02] border border-white/5 flex items-center justify-between group hover:bg-white/[0.04] transition-all"
+                        >
+                            <div className="flex items-center gap-6">
+                                <div className="w-12 h-12 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center font-black">
+                                    {user.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <div className="text-white font-medium">{user.name}</div>
+                                    <div className="text-[10px] font-black text-white/20 uppercase tracking-widest mt-1">ID: {user.employee_id} • Requested {new Date(user.created_at).toLocaleDateString()}</div>
+                                </div>
+                            </div>
+                            <div className="flex gap-3">
+                                <button 
+                                    onClick={() => { setSelectedUser(user); setIsApprovalModalOpen(true); }}
+                                    className="px-6 py-3 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-xl hover:shadow-[0_0_20px_-5px_rgba(255,255,255,0.4)] transition-all"
+                                >
+                                    Authorize Entry
+                                </button>
+                                <button 
+                                    onClick={() => handleReject(user.id)}
+                                    className="px-6 py-3 bg-rose-500/10 text-rose-500 text-[10px] font-black uppercase tracking-widest rounded-xl border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all"
+                                >
+                                    Purge
+                                </button>
+                            </div>
+                        </motion.div>
+                    )) : (
+                        <div className="p-24 rounded-[4rem] bg-white/[0.01] border border-dashed border-white/5 text-center">
+                            <CheckCircle2 size={40} className="text-white/10 mx-auto mb-6" />
+                            <p className="text-[10px] uppercase tracking-[0.4em] font-black text-white/20">All Identity Access Factor Cleared</p>
+                        </div>
+                    )}
+                </div>
+            )}
 
             <div className="p-12 rounded-[4rem] bg-white/[0.01] border border-dashed border-white/5 flex flex-col items-center justify-center text-center gap-6">
                 <Activity size={32} className="text-white/10" />
@@ -342,6 +443,53 @@ const UserManagement = () => {
                                     {isSubmitting ? <span className="animate-spin text-lg ring-2 ring-black rounded-full" /> : <><RefreshCw size={16} /> Activate Proxy</>}
                                 </button>
                             </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Approval Modal */}
+            <AnimatePresence>
+                {isApprovalModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-xl">
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="w-full max-w-sm bg-[#0a0a1a] border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl"
+                        >
+                            <div className="p-8 border-b border-white/5">
+                                <h3 className="text-2xl font-display font-medium text-white mb-2">Assign Authority</h3>
+                                <p className="text-[10px] uppercase tracking-widest text-white/20 font-black">Authorizing {selectedUser?.name}</p>
+                            </div>
+                            <div className="p-8 space-y-6">
+                                <div className="space-y-4">
+                                    {['EMPLOYEE', 'SECRETARY', 'BRANCH_MANAGER', 'ADMIN'].map(role => (
+                                        <button 
+                                            key={role}
+                                            onClick={() => setSelectedRole(role)}
+                                            className={`w-full p-4 rounded-2xl border transition-all text-left group ${selectedRole === role ? 'bg-white text-black border-white' : 'bg-white/5 border-white/5 text-white/40 hover:border-white/20 hover:text-white'}`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-black uppercase tracking-widest">{role.replace('_', ' ')}</span>
+                                                {selectedRole === role && <Check size={16} />}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                                <button 
+                                    onClick={handleApprove}
+                                    disabled={!selectedRole || isSubmitting}
+                                    className="w-full py-4 bg-brand-primary text-black rounded-2xl text-[10px] font-black uppercase tracking-widest hover:shadow-xl transition-all disabled:opacity-20"
+                                >
+                                    Activate Identity
+                                </button>
+                                <button 
+                                    onClick={() => setIsApprovalModalOpen(false)}
+                                    className="w-full text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-white transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
                         </motion.div>
                     </div>
                 )}
