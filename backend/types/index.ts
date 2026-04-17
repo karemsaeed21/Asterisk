@@ -108,6 +108,11 @@ export interface MultiPurposeDetails {
   needsVideoConference: boolean;
 }
 
+export interface AcademicDetails {
+  faculty: string;
+  subjectName: string;
+}
+
 export interface BookingRejection {
   reason: string;
   alternativeTimeSlot?: AASTSlot;
@@ -127,6 +132,8 @@ export interface Booking {
   status: BookingStatus;
   rejectionDetails?: BookingRejection;
   multiPurposeDetails?: MultiPurposeDetails;
+  academicDetails?: AcademicDetails;
+  academic_details?: AcademicDetails; // matching DB row potential structure
   createdAt: string;
   updatedAt: string;
 }

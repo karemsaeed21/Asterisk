@@ -10,7 +10,9 @@ import {
     ArrowLeft,
     Shield,
     Info,
-    CheckCircle2
+    CheckCircle2,
+    Building2,
+    GraduationCap
 } from 'lucide-react';
 import api from '../../api/client';
 import { useNavigate } from 'react-router-dom';
@@ -42,12 +44,27 @@ const ExceptionalBookingForm = () => {
         slotId: string;
         type: string;
         roomId: string | null;
+        academicDetails: {
+            faculty: string;
+            subjectName: string;
+        }
     }>({
         date: '',
         slotId: '',
         type: 'ACADEMIC_EXCEPTIONAL',
-        roomId: null 
+        roomId: null,
+        academicDetails: {
+            faculty: '',
+            subjectName: ''
+        }
     });
+
+    const handleAcademicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData(prev => ({ 
+            ...prev, 
+            academicDetails: { ...prev.academicDetails, [e.target.name]: e.target.value } 
+        }));
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -167,6 +184,42 @@ const ExceptionalBookingForm = () => {
                                         <option key={slot.id} value={slot.id}>Slot {slot.id} ({slot.startTime})</option>
                                     ))}
                                 </select>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <label className="form-label">Academic Faculty</label>
+                            <div className="relative group">
+                                <div className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-brand-primary transition-colors">
+                                    <Building2 size={18} />
+                                </div>
+                                <input 
+                                    type="text"
+                                    name="faculty"
+                                    value={formData.academicDetails.faculty}
+                                    onChange={handleAcademicChange}
+                                    required
+                                    placeholder="Engineering, Computer Science..."
+                                    className="form-input pl-14"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <label className="form-label">Subject Designation</label>
+                            <div className="relative group">
+                                <div className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-brand-primary transition-colors">
+                                    <GraduationCap size={18} />
+                                </div>
+                                <input 
+                                    type="text"
+                                    name="subjectName"
+                                    value={formData.academicDetails.subjectName}
+                                    onChange={handleAcademicChange}
+                                    required
+                                    placeholder="Data Structures CS-201..."
+                                    className="form-input pl-14"
+                                />
                             </div>
                         </div>
                     </div>

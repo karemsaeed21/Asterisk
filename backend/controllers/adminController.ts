@@ -90,7 +90,7 @@ export const getPendingRequests = async (req: Request, res: Response) => {
 
 export const createFixedSchedule = async (req: Request, res: Response) => {
     try {
-        const { roomId, slotId, startDate, weeks = 16 } = req.body;
+        const { roomId, slotId, startDate, weeks = 16, academicDetails } = req.body;
         const user = req.user!;
 
         if (!roomId || !slotId || !startDate) {
@@ -116,7 +116,8 @@ export const createFixedSchedule = async (req: Request, res: Response) => {
                 type: BookingType.ACADEMIC_FIXED,
                 date: dateStr,
                 slot_id: Number(slotId),
-                status: BookingStatus.APPROVED
+                status: BookingStatus.APPROVED,
+                academic_details: academicDetails
             });
         }
 

@@ -24,6 +24,8 @@ const FixedSchedules = () => {
     const [selectedSlot, setSelectedSlot] = useState('1');
     const [startDate, setStartDate] = useState('');
     const [weeks, setWeeks] = useState(16);
+    const [faculty, setFaculty] = useState('');
+    const [subjectName, setSubjectName] = useState('');
     
     // For deleting
     const [delRoom, setDelRoom] = useState('');
@@ -59,7 +61,8 @@ const FixedSchedules = () => {
                 roomId: selectedRoom,
                 slotId: selectedSlot,
                 startDate,
-                weeks
+                weeks,
+                academicDetails: { faculty, subjectName }
             });
             alert('Semester schedule successfully deployed.');
             // Reset form
@@ -67,6 +70,8 @@ const FixedSchedules = () => {
             setSelectedSlot('1');
             setStartDate('');
             setWeeks(16);
+            setFaculty('');
+            setSubjectName('');
             fetchData();
         } catch (err: any) {
             alert(err.response?.data?.message || 'Failed to deploy structural schedule.');
@@ -111,7 +116,8 @@ const FixedSchedules = () => {
                 slotId: booking.slot_id,
                 dayOfWeek,
                 startDate: booking.date,
-                count: 1
+                count: 1,
+                subjectName: booking.academic_details?.subjectName || 'N/A'
             };
         } else {
             acc[key].count += 1;
@@ -221,6 +227,31 @@ const FixedSchedules = () => {
                                     />
                                 </div>
                             </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] uppercase tracking-[0.2em] font-black text-white/30 ml-2">Faculty</label>
+                                    <input 
+                                        type="text"
+                                        placeholder="Engineering..."
+                                        value={faculty}
+                                        onChange={(e) => setFaculty(e.target.value)}
+                                        className="w-full bg-[#0a0a1a] border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-brand-primary/50 transition-all font-mono"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] uppercase tracking-[0.2em] font-black text-white/30 ml-2">Subject Name</label>
+                                    <input 
+                                        type="text"
+                                        placeholder="Data Structures..."
+                                        value={subjectName}
+                                        onChange={(e) => setSubjectName(e.target.value)}
+                                        className="w-full bg-[#0a0a1a] border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-brand-primary/50 transition-all font-mono"
+                                        required
+                                    />
+                                </div>
+                            </div>
 
                             <button 
                                 disabled={isSubmitting || isLoading}
@@ -296,8 +327,8 @@ const FixedSchedules = () => {
                                         onChange={(e) => setDelStartDate(e.target.value)}
                                         required
                                     />
-                                    <p className="text-[9px] uppercase tracking-widest text-white/20 mt-2 ml-2">The system will locate and destroy 16 related instances originating from this exact date.</p>
                                 </div>
+                                <p className="text-[9px] uppercase tracking-widest text-white/20 mt-2 ml-2">The system will locate and destroy 16 related instances originating from this exact date.</p>
                             </div>
 
                             <button 
@@ -344,7 +375,8 @@ const FixedSchedules = () => {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-white/10 text-[10px] uppercase tracking-widest text-white/30 font-black">
-                                    <th className="pb-4 pl-4 font-black">Campus Sector</th>
+                                    <th className="pb-4 pl-4 font-black">Subject</th>
+                                    <th className="pb-4 font-black">Campus Sector</th>
                                     <th className="pb-4 font-black">Day of Week</th>
                                     <th className="pb-4 font-black">Structural Slot</th>
                                     <th className="pb-4 font-black">Initial Date</th>
@@ -354,7 +386,10 @@ const FixedSchedules = () => {
                             <tbody>
                                 {activeSequences.map((seq: any) => (
                                     <tr key={seq.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
-                                        <td className="py-6 pl-4 font-bold text-white text-sm flex items-center gap-3">
+                                        <td className="py-6 pl-4 text-xs font-bold text-brand-primary/80">
+                                            {seq.subjectName}
+                                        </td>
+                                        <td className="py-6 font-bold text-white text-sm flex items-center gap-3">
                                             <div className="w-2 h-2 rounded-full bg-brand-primary shadow-[0_0_10px_-2px_rgba(var(--brand-primary),0.5)]" />
                                             {seq.roomName}
                                         </td>
