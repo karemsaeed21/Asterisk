@@ -47,6 +47,7 @@ const Layout: React.FC = () => {
             title: 'System Access',
             items: [
                 { name: 'Directory', path: '/admin/users', icon: Users, roles: [Role.ADMIN, Role.BRANCH_MANAGER] },
+                { name: 'Security Logs', path: '/admin/logs', icon: Shield, roles: [Role.ADMIN, Role.BRANCH_MANAGER] },
                 { name: 'System Config', path: '/admin/settings', icon: Shield, roles: [Role.ADMIN, Role.BRANCH_MANAGER] },
             ]
         }
