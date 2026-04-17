@@ -14,6 +14,7 @@ import {
     Building2,
     GraduationCap
 } from 'lucide-react';
+import api from '../../api/client';
 import { useAuth, Role } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
