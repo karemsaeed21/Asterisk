@@ -60,7 +60,14 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       .single();
       
     if (overrides) {
-      req.overrides = overrides as unknown as UserPermissionOverrides;
+      req.overrides = {
+        id: overrides.id,
+        userId: overrides.user_id,
+        can_view_schedule: overrides.can_view_schedule,
+        can_approve_requests: overrides.can_approve_requests,
+        can_manage_rooms: overrides.can_manage_rooms,
+        updatedAt: overrides.updated_at
+      } as UserPermissionOverrides;
     }
 
     // Load Active Delegations from delegations table
@@ -74,7 +81,15 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     if (delegations && delegations.length > 0) {
         for (const del of delegations) {
             if (now >= del.start_date && now <= del.end_date) {
-                req.activeDelegation = del as unknown as Delegation;
+                req.activeDelegation = {
+                    id: del.id,
+                    delegatorId: del.delegator_id,
+                    substituteId: del.substitute_id,
+                    startDate: del.start_date,
+                    endDate: del.end_date,
+                    status: del.status,
+                    createdAt: del.created_at
+                } as Delegation;
                 
                 // --- PERMISSION INHERITANCE ---
                 // Fetch delegator identity to inherit their role/powers
