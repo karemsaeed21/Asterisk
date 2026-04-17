@@ -118,3 +118,44 @@ export const signup = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 };
+
+/**
+ * Returns the current computed session identity (respecting delegations)
+ */
+export const getMe = async (req: Request, res: Response) => {
+    try {
+        const user = req.user!;
+        const activeDelegation = req.activeDelegation;
+        const overrides = req.overrides;
+
+        // If active delegation exists, we might want to tell the frontend
+        // who the original delegator was for the "Acting As" banner.
+        let delegatorName = null;
+        if (activeDelegation) {
+            const { data: delUser } = await supabase
+                .from('users')
+                .select('name')
+                .eq('id', activeDelegation.delegatorId)
+                .single();
+            delegatorName = delUser?.name;
+        }
+
+        res.status(200).json({
+            user: {
+                id: user.id,
+                employee_id: user.employee_id,
+                name: user.name,
+                role: user.role,
+                status: user.status
+            },
+            activeDelegation: activeDelegation ? {
+                ...activeDelegation,
+                delegatorName
+            } : null,
+            overrides
+        });
+    } catch (error) {
+        console.error('getMe error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};

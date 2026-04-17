@@ -125,12 +125,18 @@ export const createDelegation = async (req: Request, res: Response) => {
     try {
         const { substituteId, startDate, endDate } = req.body;
         const delegatorId = req.user!.id;
+        const role = req.user!.role;
 
         // Validation
         if (!substituteId || !startDate || !endDate) {
             res.status(400).json({ message: 'Substitute ID and date range are required.' });
             return;
         }
+
+        // Determine if it should be immediately ACTIVE or PENDING approval
+        const initialStatus = (role === Role.ADMIN || role === Role.BRANCH_MANAGER) 
+            ? DelegationStatus.ACTIVE 
+            : DelegationStatus.PENDING;
 
         const { data: delegation, error } = await supabase
             .from('delegations')
@@ -139,16 +145,89 @@ export const createDelegation = async (req: Request, res: Response) => {
                 substitute_id: substituteId,
                 start_date: startDate,
                 end_date: endDate,
-                status: DelegationStatus.ACTIVE
+                status: initialStatus
             })
             .select()
             .single();
 
         if (error) throw error;
 
-        res.status(201).json({ delegation });
+        const message = initialStatus === DelegationStatus.ACTIVE 
+            ? 'Temporal delegation activated.' 
+            : 'Delegation request submitted for administrative clearance.';
+
+        res.status(201).json({ delegation, message });
     } catch (error) {
         console.error('Error creating delegation:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+/**
+ * Gets all pending delegations (Admin/Branch Manager only)
+ */
+export const getPendingDelegations = async (req: Request, res: Response) => {
+    try {
+        const { data: delegations, error } = await supabase
+            .from('delegations')
+            .select(`
+                id,
+                start_date,
+                end_date,
+                status,
+                created_at,
+                delegator:users!delegator_id (id, name, employee_id, role),
+                substitute:users!substitute_id (id, name, employee_id)
+            `)
+            .eq('status', DelegationStatus.PENDING);
+
+        if (error) throw error;
+
+        res.status(200).json({ delegations });
+    } catch (error) {
+        console.error('Error fetching pending delegations:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+/**
+ * Approves a pending delegation
+ */
+export const approveDelegation = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const { error } = await supabase
+            .from('delegations')
+            .update({ status: DelegationStatus.ACTIVE })
+            .eq('id', id);
+
+        if (error) throw error;
+
+        res.status(200).json({ message: 'Delegation authorized and activated.' });
+    } catch (error) {
+        console.error('Error approving delegation:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+/**
+ * Reject/Purge a delegation request
+ */
+export const rejectDelegation = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const { error } = await supabase
+            .from('delegations')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        res.status(200).json({ message: 'Delegation request rejected and purged.' });
+    } catch (error) {
+        console.error('Error rejecting delegation:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 };

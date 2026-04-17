@@ -11,14 +11,21 @@ import {
     Smartphone,
     Briefcase,
     Zap,
+    Shield,
+    Info,
     ChevronRight,
     ArrowLeft
 } from 'lucide-react';
 import api from '../../api/client';
 import { useNavigate } from 'react-router-dom';
+import { useAuth, Role } from '../../context/AuthContext';
 
 const MultiPurposeForm = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const isEmployee = user?.role === Role.EMPLOYEE;
+    const isSecretary = user?.role === Role.SECRETARY;
+    const isBlind = isEmployee || isSecretary;
     const [rooms, setRooms] = useState<any[]>([]);
     const [slotConfig, setSlotConfig] = useState<any[]>([]);
     const [isLoadingData, setIsLoadingData] = useState(true);
@@ -137,21 +144,32 @@ const MultiPurposeForm = () => {
                         </div>
 
                         <div className="grid md:grid-cols-2 gap-8">
-                            <div className="space-y-3">
-                                <label className="form-label">Sector Assignment</label>
-                                <select 
-                                    name="roomId"
-                                    value={formData.roomId}
-                                    onChange={handleChange}
-                                    required
-                                    className="form-input"
-                                >
-                                    <option value="">Identify sector...</option>
-                                    {rooms.map(room => (
-                                        <option key={room.id} value={room.id}>{room.name}</option>
-                                    ))}
-                                </select>
-                            </div>
+                            {!isBlind ? (
+                                <div className="space-y-3">
+                                    <label className="form-label">Sector Assignment</label>
+                                    <select 
+                                        name="roomId"
+                                        value={formData.roomId}
+                                        onChange={handleChange}
+                                        required
+                                        className="form-input"
+                                    >
+                                        <option value="">Identify sector...</option>
+                                        {rooms.map(room => (
+                                            <option key={room.id} value={room.id}>{room.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            ) : (
+                                <div className="p-8 rounded-[2rem] bg-brand-primary/5 border border-brand-primary/10 flex gap-4 items-center">
+                                    <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                                        <Shield size={20} />
+                                    </div>
+                                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
+                                        Blind Assignment Protocol Active
+                                    </div>
+                                </div>
+                            )}
                             <div className="space-y-3">
                                 <label className="form-label">Deployment Date</label>
                                 <input 
@@ -347,7 +365,11 @@ const MultiPurposeForm = () => {
 
                         <div className="p-8 rounded-[2.5rem] bg-white/[0.01] border border-dashed border-white/5 text-center">
                             <p className="text-[10px] text-white/20 font-black uppercase tracking-[0.2em] leading-relaxed">
-                                Note: Multi-purpose requests require Branch Manager clearance. Temporal window: 48h Minimum.
+                                {isSecretary 
+                                    ? "Note: College Secretary requests require Branch Manager clearance. Temporal window: 48h Minimum."
+                                    : isEmployee 
+                                        ? "Note: Employees cannot select sectors directly. Branch Manager will assign the most suitable available resource." 
+                                        : "Note: Multi-purpose requests require Branch Manager clearance. Temporal window: 48h Minimum."}
                             </p>
                         </div>
                     </div>

@@ -15,10 +15,13 @@ import {
     GraduationCap
 } from 'lucide-react';
 import api from '../../api/client';
+import { useAuth, Role } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const ExceptionalBookingForm = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const isEmployee = user?.role === Role.EMPLOYEE;
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
@@ -232,6 +235,11 @@ const ExceptionalBookingForm = () => {
                             <h4 className="text-sm font-bold text-white/90 uppercase tracking-widest">Blind Booking Disclaimer</h4>
                             <p className="text-xs text-white/30 leading-relaxed font-light">
                                 Exceptional requests do not allow direct sector selection. The Administration will perform a full-campus availability sweep to assign the most suitable resource for your specific temporal slot.
+                                {isEmployee && (
+                                    <span className="block mt-2 font-bold text-brand-primary/60 uppercase tracking-tighter">
+                                        Note: Employees must initiate requests at least 24 hours in advance.
+                                    </span>
+                                )}
                             </p>
                         </div>
                     </div>

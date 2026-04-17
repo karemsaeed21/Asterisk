@@ -71,10 +71,24 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       .eq('substitute_id', user.id)
       .eq('status', DelegationStatus.ACTIVE);
       
-    if (delegations) {
+    if (delegations && delegations.length > 0) {
         for (const del of delegations) {
             if (now >= del.start_date && now <= del.end_date) {
                 req.activeDelegation = del as unknown as Delegation;
+                
+                // --- PERMISSION INHERITANCE ---
+                // Fetch delegator identity to inherit their role/powers
+                const { data: delegator } = await supabase
+                    .from('users')
+                    .select('role')
+                    .eq('id', del.delegator_id)
+                    .single();
+                
+                if (delegator && delegator.role) {
+                    console.log(`[AUTH] Inheritance Active: Substitute ${user.name} now acting as ${delegator.role}`);
+                    // Temporarily upgrade the user's role for this request
+                    req.user.role = delegator.role;
+                }
                 break; 
             }
         }
@@ -97,6 +111,13 @@ export const requireRole = (allowedRoles: Role[]) => {
     // Admin and Branch Manager naturally override or have full access
     if (req.user.role === Role.ADMIN || req.user.role === Role.BRANCH_MANAGER) {
       return next();
+    }
+
+    // --- OVERRIDE ENFORCEMENT ---
+    // Check if user has explicit override for viewing schedules (most common use case for Employee/Secretary)
+    if (req.overrides?.can_view_schedule && allowedRoles.length === 2 && allowedRoles.includes(Role.ADMIN) && allowedRoles.includes(Role.BRANCH_MANAGER)) {
+        // This is a "See All" route that usually restricted to high roles
+        return next();
     }
 
     // Role check

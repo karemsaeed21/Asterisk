@@ -13,6 +13,7 @@ import AdminSettings from './pages/Admin/Settings';
 import Users from './pages/Admin/Users';
 import FixedSchedules from './pages/Admin/FixedSchedules';
 import FullSchedule from './pages/Admin/FullSchedule';
+import Notifications from './pages/Admin/Notifications';
 
 import History from './pages/Dashboard/History';
 
@@ -34,6 +35,7 @@ function App() {
           <Route path="admin/users" element={<Users />} />
           <Route path="admin/settings" element={<AdminSettings />} />
           <Route path="admin/schedules" element={<FixedSchedules />} />
+          <Route path="admin/logs" element={<Notifications />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

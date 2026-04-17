@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Clock, CheckCircle2, XCircle, ArrowRight, Zap, Calendar as CalendarIcon, Filter } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, Role } from '../../context/AuthContext';
+import { Plus, Clock, CheckCircle2, XCircle, ArrowRight, Zap, Calendar as CalendarIcon, Filter, Shield, RefreshCw } from 'lucide-react';
 import api from '../../api/client';
 import { Link } from 'react-router-dom';
+import DelegationRequestModal from '../../components/Modals/DelegationRequestModal';
 
 const UserDashboard = () => {
     const { user } = useAuth();
     const [requests, setRequests] = useState<any[]>([]);
     const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 });
+    const [isDelegationModalOpen, setIsDelegationModalOpen] = useState(false);
+    const [activeProxyFor, setActiveProxyFor] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchRequests = async () => {
@@ -28,6 +31,12 @@ const UserDashboard = () => {
             }
         };
         fetchRequests();
+
+        // Check for active proxy identity in auth user info
+        // (Assuming authMiddleware updates req.user.name or we have a flag)
+        // For now, let's just check if activeDelegation exists in the auth context?
+        // Actually, let's fetch it or rely on the fact that if they are acting, 
+        // they might want to know.
     }, []);
 
     const statCards = [
@@ -169,16 +178,34 @@ const UserDashboard = () => {
                 <div className="space-y-6">
                     <h3 className="text-xl font-display font-medium px-2">Quick Commands</h3>
                     
-                    <div className="group p-8 rounded-[2.5rem] bg-gradient-to-br from-brand-secondary/20 to-transparent border border-brand-secondary/20 hover:border-brand-secondary/40 transition-all">
-                        <div className="w-12 h-12 rounded-2xl bg-brand-secondary/10 flex items-center justify-center text-brand-secondary mb-6">
-                            <Filter size={24} />
+                    {user?.role !== Role.EMPLOYEE && user?.role !== Role.SECRETARY && (
+                        <div className="group p-8 rounded-[2.5rem] bg-gradient-to-br from-brand-secondary/20 to-transparent border border-brand-secondary/20 hover:border-brand-secondary/40 transition-all">
+                            <div className="w-12 h-12 rounded-2xl bg-brand-secondary/10 flex items-center justify-center text-brand-secondary mb-6">
+                                <Filter size={24} />
+                            </div>
+                            <h4 className="text-white font-bold mb-2">Availability Hub</h4>
+                            <p className="text-white/40 text-sm leading-relaxed mb-6 font-light">
+                                Search for high-priority resources across all branches in real-time.
+                            </p>
+                            <button className="w-full py-4 text-xs font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all text-white/60 hover:text-white">
+                                Launch Search Interface
+                            </button>
                         </div>
-                        <h4 className="text-white font-bold mb-2">Availability Hub</h4>
+                    )}
+
+                    <div className="group p-8 rounded-[2.5rem] bg-gradient-to-br from-brand-primary/20 to-transparent border border-brand-primary/20 hover:border-brand-primary/40 transition-all">
+                        <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 flex items-center justify-center text-brand-primary mb-6">
+                            <RefreshCw size={24} />
+                        </div>
+                        <h4 className="text-white font-bold mb-2">Temporal Proxy</h4>
                         <p className="text-white/40 text-sm leading-relaxed mb-6 font-light">
-                            Search for high-priority resources across all branches in real-time.
+                            Designate a substitute to manage your responsibilities during planned absence.
                         </p>
-                        <button className="w-full py-4 text-xs font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all text-white/60 hover:text-white">
-                            Launch Search Interface
+                        <button 
+                            onClick={() => setIsDelegationModalOpen(true)}
+                            className="w-full py-4 text-xs font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all text-white/60 hover:text-white"
+                        >
+                            Request Substitute
                         </button>
                     </div>
 
@@ -193,6 +220,11 @@ const UserDashboard = () => {
                     </div>
                 </div>
             </div>
+            
+            <DelegationRequestModal 
+                isOpen={isDelegationModalOpen} 
+                onClose={() => setIsDelegationModalOpen(false)}
+            />
         </div>
     );
 };
