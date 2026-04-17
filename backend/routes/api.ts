@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { login, signup } from '../controllers/authController.js';
 import { getAllRooms, getRoomAvailability, createRoom } from '../controllers/roomController.js';
 import { createBooking, getMyRequests } from '../controllers/bookingController.js';
-import { approveBooking, rejectBookingWithAlternatives, getPendingRequests, createFixedSchedule, deleteFixedSchedule, getFixedSchedules, getDailySchedule } from '../controllers/adminController.js';
+import { approveBooking, rejectBookingWithAlternatives, getPendingRequests, createFixedSchedule, deleteFixedSchedule, getFixedSchedules, getDailySchedule, updateBookingData, deleteBooking } from '../controllers/adminController.js';
 import { getDailyMorningReport, getVIPNotifications } from '../controllers/reportController.js';
 import { getSettings, updateSettings } from '../controllers/settingsController.js';
 import { getAllUsers, updateUserOverride, createDelegation, revokeDelegation, getPendingUsers, approveUser, rejectUser } from '../controllers/userController.js';
@@ -29,6 +29,8 @@ router.get('/bookings/my-requests', authenticate, getMyRequests);
 router.get('/admin/requests/pending', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), getPendingRequests);
 router.post('/admin/bookings/:bookingId/approve', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), approveBooking);
 router.post('/admin/bookings/:bookingId/reject', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), rejectBookingWithAlternatives);
+router.put('/admin/bookings/:bookingId', authenticate, requireRole([Role.ADMIN]), updateBookingData);
+router.delete('/admin/bookings/:bookingId', authenticate, requireRole([Role.ADMIN]), deleteBooking);
 
 // Admin Fixed Schedules
 router.post('/admin/schedules/fixed', authenticate, requireRole([Role.ADMIN]), createFixedSchedule);
