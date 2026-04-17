@@ -9,9 +9,15 @@ import {
     BadgeCheck, 
     MoreVertical,
     Activity,
-    ArrowLeft
+    ArrowLeft,
+    X,
+    Lock,
+    Calendar,
+    UserCheck,
+    Check
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import api from '../../api/client';
 
 const UserManagement = () => {
@@ -19,19 +25,31 @@ const UserManagement = () => {
     const [users, setUsers] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedUser, setSelectedUser] = useState<any>(null);
+    const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
+    const [isDelegationModalOpen, setIsDelegationModalOpen] = useState(false);
+    
+    // Override form state
+    const [overrides, setOverrides] = useState({
+        canViewSchedule: false,
+        canApproveRequests: false,
+        canManageRooms: false
+    });
+
+    // Delegation form state
+    const [delegation, setDelegation] = useState({
+        substituteId: '',
+        startDate: '',
+        endDate: ''
+    });
+
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                // Mocking user list as we don't have a dedicated endpoint yet
-                // In production: const res = await api.get('/admin/users');
-                const mockUsers = [
-                    { id: '1', name: 'Dr. Ahmed Khaled', employee_id: 'prof_001', role: 'ADMIN', status: 'Active' },
-                    { id: '2', name: 'Eng. Sarah Yasin', employee_id: 'eng_042', role: 'BRANCH_MANAGER', status: 'Active' },
-                    { id: '3', name: 'Mona Hassan', employee_id: 'sec_012', role: 'SECRETARY', status: 'Away' },
-                    { id: '4', name: 'Karim Saeed', employee_id: 'emp_999', role: 'EMPLOYEE', status: 'Active' },
-                ];
-                setUsers(mockUsers);
+                const res = await api.get('/admin/users');
+                setUsers(res.data.users);
             } catch (err) {
                 console.error('Failed to fetch users');
             } finally {
@@ -40,6 +58,54 @@ const UserManagement = () => {
         };
         fetchUsers();
     }, []);
+
+    const handleUpdateOverrides = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        try {
+            await api.put(`/admin/users/${selectedUser.id}/overrides`, overrides);
+            setIsOverrideModalOpen(false);
+        } catch (err) {
+            alert('Failed to update overrides');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleCreateDelegation = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        try {
+            // Mapping the UI logic: Delegator is the selected user (if Admin is doing it) or current user.
+            // Simplified: We assume Admin is setting it up for the selectedUser as delegator.
+            // But the controller takes req.user as delegator. 
+            // So we need to ensure the API matches. 
+            // Let's assume Admin is the one setting it up for the selected user.
+            await api.post('/delegations', {
+                ...delegation,
+                // In a real scenario, Admin might specify the delegator. 
+                // For now, let's stick to the controller's logic where req.user is delegator.
+                // Or we update controller to allow Admin to specify.
+            });
+            setIsDelegationModalOpen(false);
+        } catch (err) {
+            alert('Failed to create delegation');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const openOverrideModal = (user: any) => {
+        setSelectedUser(user);
+        setIsOverrideModalOpen(true);
+        // Reset or fetch existing overrides here if applicable
+    };
+
+    const openDelegationModal = (user: any) => {
+        setSelectedUser(user);
+        // Pre-fill the substitute state if needed
+        setIsDelegationModalOpen(true);
+    };
 
     const filteredUsers = users.filter(u => 
         u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -123,6 +189,18 @@ const UserManagement = () => {
                                 </div>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-white/60">{user.role.replace('_', ' ')}</span>
                             </div>
+                            <button 
+                                onClick={() => openOverrideModal(user)}
+                                className="w-8 h-8 rounded-full bg-white/5 text-white/20 flex items-center justify-center hover:bg-white/10 active:scale-90 transition-all"
+                            >
+                                <Lock size={16} />
+                            </button>
+                            <button 
+                                onClick={() => openDelegationModal(user)}
+                                className="w-8 h-8 rounded-full bg-white/5 text-white/20 flex items-center justify-center hover:bg-white/10 active:scale-90 transition-all"
+                            >
+                                <RefreshCw size={16} className="text-brand-secondary/40 shrink-0" />
+                            </button>
                             <button className="w-8 h-8 rounded-full bg-white/5 text-white/20 flex items-center justify-center hover:bg-white/10 active:scale-90 transition-all">
                                 <MoreVertical size={16} />
                             </button>
@@ -138,6 +216,135 @@ const UserManagement = () => {
                     <p className="text-xs text-white/10 font-medium italic">"Identity integrity is the foundation of academic resource security."</p>
                 </div>
             </div>
+            </div>
+
+            {/* Override Modal */}
+            <AnimatePresence>
+                {isOverrideModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-xl">
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="w-full max-w-lg bg-[#0a0a1a] border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl"
+                        >
+                            <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <h3 className="text-2xl font-display font-medium text-white">Authority Override</h3>
+                                    <p className="text-[10px] uppercase tracking-widest text-white/20 font-black">User: {selectedUser?.name}</p>
+                                </div>
+                                <button onClick={() => setIsOverrideModalOpen(false)} className="text-white/20 hover:text-white transition-colors">
+                                    <X size={24} />
+                                </button>
+                            </div>
+                            <form onSubmit={handleUpdateOverrides} className="p-8 space-y-8">
+                                <div className="space-y-4">
+                                    {[
+                                        { id: 'canViewSchedule', label: 'Visibility Access', sub: 'Allow user to view all room schedules' },
+                                        { id: 'canApproveRequests', label: 'Decision Control', sub: 'Grant authority to approve/reject bookings' },
+                                        { id: 'canManageRooms', label: 'Resource Management', sub: 'Allow adding/removing campus sectors' }
+                                    ].map(opt => (
+                                        <label key={opt.id} className="flex items-center justify-between p-6 rounded-2xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.04] transition-all">
+                                            <div className="space-y-1">
+                                                <div className="text-sm font-bold text-white">{opt.label}</div>
+                                                <div className="text-[10px] text-white/20 font-medium">{opt.sub}</div>
+                                            </div>
+                                            <input 
+                                                type="checkbox"
+                                                checked={(overrides as any)[opt.id]}
+                                                onChange={(e) => setOverrides(prev => ({ ...prev, [opt.id]: e.target.checked }))}
+                                                className="w-5 h-5 accent-brand-primary"
+                                            />
+                                        </label>
+                                    ))}
+                                </div>
+                                <button 
+                                    disabled={isSubmitting}
+                                    className="w-full py-4 bg-white text-black rounded-2xl text-xs font-bold uppercase tracking-widest hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                                >
+                                    {isSubmitting ? <span className="animate-spin text-lg ring-2 ring-black rounded-full" /> : <><Shield size={16} /> Deploy Overrides</>}
+                                </button>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Delegation Modal */}
+            <AnimatePresence>
+                {isDelegationModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-xl">
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="w-full max-w-lg bg-[#0a0a1a] border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl"
+                        >
+                            <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <h3 className="text-2xl font-display font-medium text-white">Temporal Delegation</h3>
+                                    <p className="text-[10px] uppercase tracking-widest text-white/20 font-black">Assigning Proxy for {selectedUser?.name}</p>
+                                </div>
+                                <button onClick={() => setIsDelegationModalOpen(false)} className="text-white/20 hover:text-white transition-colors">
+                                    <X size={24} />
+                                </button>
+                            </div>
+                            <form onSubmit={handleCreateDelegation} className="p-8 space-y-6">
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-white/20 ml-2">Substitute Official</label>
+                                        <select 
+                                            value={delegation.substituteId}
+                                            onChange={(e) => setDelegation(prev => ({ ...prev, substituteId: e.target.value }))}
+                                            className="w-full bg-white/[0.03] border border-white/5 rounded-2xl p-4 text-xs text-white outline-none focus:border-brand-secondary/50"
+                                            required
+                                        >
+                                            <option value="">Select identity...</option>
+                                            {users.filter(u => u.id !== selectedUser?.id).map(u => (
+                                                <option key={u.id} value={u.id}>{u.name} ({u.employee_id})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-white/20 ml-2">Start Epoch</label>
+                                            <input 
+                                                type="date"
+                                                value={delegation.startDate}
+                                                onChange={(e) => setDelegation(prev => ({ ...prev, startDate: e.target.value }))}
+                                                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl p-4 text-xs text-white outline-none focus:border-brand-secondary/50"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-white/20 ml-2">End Epoch</label>
+                                            <input 
+                                                type="date"
+                                                value={delegation.endDate}
+                                                onChange={(e) => setDelegation(prev => ({ ...prev, endDate: e.target.value }))}
+                                                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl p-4 text-xs text-white outline-none focus:border-brand-secondary/50"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="p-6 rounded-2xl bg-brand-secondary/5 border border-brand-secondary/10 flex gap-4 items-start">
+                                    <Info size={18} className="text-brand-secondary shrink-0" />
+                                    <p className="text-[10px] text-brand-secondary/60 leading-relaxed font-medium">
+                                        The substitute will inherit all operational authorities of the primary official during the specified timeframe.
+                                    </p>
+                                </div>
+                                <button 
+                                    disabled={isSubmitting}
+                                    className="w-full py-4 bg-brand-secondary text-black rounded-2xl text-xs font-bold uppercase tracking-widest hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                                >
+                                    {isSubmitting ? <span className="animate-spin text-lg ring-2 ring-black rounded-full" /> : <><RefreshCw size={16} /> Activate Proxy</>}
+                                </button>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

@@ -5,6 +5,7 @@ import { createBooking, getMyRequests } from '../controllers/bookingController.j
 import { approveBooking, rejectBookingWithAlternatives, getPendingRequests } from '../controllers/adminController.js';
 import { getDailyMorningReport, getVIPNotifications } from '../controllers/reportController.js';
 import { getSettings, updateSettings } from '../controllers/settingsController.js';
+import { getAllUsers, updateUserOverride, createDelegation, revokeDelegation } from '../controllers/userController.js';
 import { authenticate, requireRole } from '../middleware/authMiddleware.js';
 import { Role } from '../types/index.js';
 
@@ -35,5 +36,13 @@ router.get('/admin/notifications/vip', authenticate, requireRole([Role.ADMIN]), 
 // System Settings
 router.get('/admin/settings', authenticate, requireRole([Role.ADMIN]), getSettings);
 router.put('/admin/settings', authenticate, requireRole([Role.ADMIN]), updateSettings);
+
+// User Management (Admin Only)
+router.get('/admin/users', authenticate, requireRole([Role.ADMIN]), getAllUsers);
+router.put('/admin/users/:userId/overrides', authenticate, requireRole([Role.ADMIN]), updateUserOverride);
+
+// Delegation (Self-service or Admin managed)
+router.post('/delegations', authenticate, createDelegation);
+router.patch('/delegations/:delegationId/revoke', authenticate, revokeDelegation);
 
 export default router;
