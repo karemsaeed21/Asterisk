@@ -4,12 +4,15 @@ import { getAllRooms, getRoomAvailability, createRoom } from '../controllers/roo
 import { createBooking, getMyRequests } from '../controllers/bookingController.js';
 import { approveBooking, rejectBookingWithAlternatives, getPendingRequests, createFixedSchedule, deleteFixedSchedule, getFixedSchedules, getDailySchedule, updateBookingData, deleteBooking } from '../controllers/adminController.js';
 import { getDailyMorningReport, getVIPNotifications } from '../controllers/reportController.js';
-import { getSettings, updateSettings } from '../controllers/settingsController.js';
+import { getSettings, updateSettings, getPublicSettings } from '../controllers/settingsController.js';
 import { getAllUsers, updateUserOverride, createDelegation, revokeDelegation, getPendingUsers, approveUser, rejectUser } from '../controllers/userController.js';
 import { authenticate, requireRole } from '../middleware/authMiddleware.js';
 import { Role } from '../types/index.js';
 
 const router = Router();
+
+// Shared/Public Shared Data (Authenticated)
+router.get('/settings/public', authenticate, getPublicSettings);
 
 // Auth Endpoints
 router.post('/auth/login', login);

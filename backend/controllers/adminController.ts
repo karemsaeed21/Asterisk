@@ -5,21 +5,54 @@ import { BookingStatus, BookingRejection, BookingType, AASTSlot } from '../types
 export const approveBooking = async (req: Request, res: Response) => {
     try {
         const { bookingId } = req.params as { bookingId: string };
+        const user = req.user!;
+
+        // 1. Fetch current status
+        const { data: booking, error: fetchError } = await supabase
+            .from('bookings')
+            .select('status')
+            .eq('id', bookingId)
+            .single();
+
+        if (fetchError || !booking) {
+            res.status(404).json({ message: 'Booking not found' });
+            return;
+        }
+
+        let nextStatus: BookingStatus;
+        let responseMessage: string;
+
+        // 2. Determine Next Status based on current status and role
+        if (booking.status === BookingStatus.PENDING_ADMIN) {
+            if (user.role !== 'ADMIN' && user.role !== 'BRANCH_MANAGER') {
+                res.status(403).json({ message: 'Only an Admin or Branch Manager can provide preliminary approval.' });
+                return;
+            }
+            nextStatus = BookingStatus.PENDING_BRANCH_MGR;
+            responseMessage = 'Preliminary Admin approval granted. Escalated to Branch Manager.';
+        } else if (booking.status === BookingStatus.PENDING_BRANCH_MGR) {
+            if (user.role !== 'BRANCH_MANAGER') {
+                res.status(403).json({ message: 'Only a Branch Manager can provide final approval.' });
+                return;
+            }
+            nextStatus = BookingStatus.APPROVED;
+            responseMessage = 'Final Branch Manager approval granted. Booking confirmed.';
+        } else {
+            res.status(400).json({ message: 'Booking is not in a pending state that requires approval.' });
+            return;
+        }
 
         const { error } = await supabase
             .from('bookings')
             .update({
-                status: BookingStatus.APPROVED,
+                status: nextStatus,
                 updated_at: new Date().toISOString()
             })
             .eq('id', bookingId);
 
-        if (error) {
-            res.status(404).json({ message: 'Booking not found or error updating' });
-            return;
-        }
+        if (error) throw error;
 
-        res.status(200).json({ message: 'Booking approved successfully.' });
+        res.status(200).json({ message: responseMessage });
     } catch (error) {
         console.error('Error approving booking:', error);
         res.status(500).json({ message: 'Internal server error' });
@@ -69,6 +102,15 @@ export const rejectBookingWithAlternatives = async (req: Request, res: Response)
 
 export const getPendingRequests = async (req: Request, res: Response) => {
     try {
+        const user = req.user!;
+        let statusToFetch: BookingStatus[] = [];
+
+        if (user.role === 'ADMIN') {
+            statusToFetch = [BookingStatus.PENDING_ADMIN];
+        } else if (user.role === 'BRANCH_MANAGER') {
+            statusToFetch = [BookingStatus.PENDING_BRANCH_MGR];
+        }
+
         const { data: requests, error } = await supabase
             .from('bookings')
             .select(`
@@ -76,7 +118,7 @@ export const getPendingRequests = async (req: Request, res: Response) => {
                 rooms!inner(name),
                 users!inner(name)
             `)
-            .in('status', [BookingStatus.PENDING_ADMIN, BookingStatus.PENDING_BRANCH_MGR]);
+            .in('status', statusToFetch);
 
         if (error) throw error;
 

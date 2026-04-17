@@ -44,7 +44,7 @@ const FullSchedule = () => {
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
-                const settingsRes = await api.get('/admin/settings');
+                const settingsRes = await api.get('/settings/public');
                 setSlotConfig(settingsRes.data.slots);
             } catch (err) {
                 console.error("Failed to fetch settings");
