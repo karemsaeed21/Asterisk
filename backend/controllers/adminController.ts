@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/supabase.js';
-import { BookingStatus, BookingRejection } from '../types/index.js';
+import { BookingStatus, BookingRejection, BookingType, AASTSlot } from '../types/index.js';
 
 export const approveBooking = async (req: Request, res: Response) => {
     try {
@@ -39,7 +39,7 @@ export const rejectBookingWithAlternatives = async (req: Request, res: Response)
 
         const rejectionDetails: BookingRejection = {
             reason,
-            alternativeTimeSlot: alternativeTimeSlot ? Number(alternativeTimeSlot) : undefined,
+            alternativeTimeSlot: alternativeTimeSlot ? (Number(alternativeTimeSlot) as AASTSlot) : undefined,
             alternativeDate,
             alternativeRoomId,
             rejectedBy: user.id,
@@ -85,5 +85,147 @@ export const getPendingRequests = async (req: Request, res: Response) => {
     } catch (error) {
          console.error('Error fetching pending requests:', error);
          res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+export const createFixedSchedule = async (req: Request, res: Response) => {
+    try {
+        const { roomId, slotId, startDate, weeks = 16 } = req.body;
+        const user = req.user!;
+
+        if (!roomId || !slotId || !startDate) {
+            res.status(400).json({ message: 'roomId, slotId, and startDate are required' });
+            return;
+        }
+
+        const start = new Date(startDate);
+        if (isNaN(start.getTime())) {
+            res.status(400).json({ message: 'Invalid startDate format' });
+            return;
+        }
+
+        const bookingsToInsert = [];
+        for (let i = 0; i < weeks; i++) {
+            const current = new Date(start);
+            current.setDate(start.getDate() + i * 7);
+            const dateStr = current.toISOString().split('T')[0];
+
+            bookingsToInsert.push({
+                room_id: roomId,
+                requester_id: user.id,
+                type: BookingType.ACADEMIC_FIXED,
+                date: dateStr,
+                slot_id: Number(slotId),
+                status: BookingStatus.APPROVED
+            });
+        }
+
+        // Check for conflicts over all these dates
+        const dates = bookingsToInsert.map(b => b.date);
+        const { data: conflicts, error: conflictError } = await supabase
+            .from('bookings')
+            .select('id, date')
+            .eq('room_id', roomId)
+            .eq('slot_id', Number(slotId))
+            .in('date', dates)
+            .in('status', [BookingStatus.APPROVED, BookingStatus.PENDING_BRANCH_MGR, BookingStatus.PENDING_ADMIN]);
+
+        if (conflictError) throw conflictError;
+
+        if (conflicts && conflicts.length > 0) {
+            res.status(409).json({ 
+                message: 'Conflicts detected for one or more dates in the schedule.',
+                conflicts 
+            });
+            return;
+        }
+
+        const { data, error } = await supabase
+            .from('bookings')
+            .insert(bookingsToInsert)
+            .select();
+
+        if (error) throw error;
+
+        res.status(201).json({ message: `Successfully created ${weeks}-week schedule.`, bookings: data });
+    } catch (error) {
+        console.error('Error creating fixed schedule:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+export const deleteFixedSchedule = async (req: Request, res: Response) => {
+    try {
+        const { roomId, slotId, startDate, weeks = 16 } = req.query as { roomId: string, slotId: string, startDate: string, weeks?: string };
+
+        if (!roomId || !slotId || !startDate) {
+            res.status(400).json({ message: 'roomId, slotId, and startDate are required' });
+            return;
+        }
+
+        const numWeeks = Number(weeks);
+        const start = new Date(startDate);
+        const end = new Date(start);
+        end.setDate(start.getDate() + (numWeeks - 1) * 7);
+
+        const startDateStr = start.toISOString().split('T')[0];
+        const endDateStr = end.toISOString().split('T')[0];
+
+        // Ensure we only delete bookings falling on the exact same day of the week
+        // A generic approach is to fetch them all in range, filter in JS, and delete by IDs
+        const { data: records, error: fetchError } = await supabase
+            .from('bookings')
+            .select('id, date')
+            .eq('room_id', roomId)
+            .eq('slot_id', Number(slotId))
+            .eq('type', BookingType.ACADEMIC_FIXED)
+            .gte('date', startDateStr)
+            .lte('date', endDateStr);
+
+        if (fetchError) throw fetchError;
+
+        const targetDay = start.getDay();
+        const idsToDelete = (records || [])
+            .filter(r => new Date(r.date).getDay() === targetDay)
+            .map(r => r.id);
+
+        if (idsToDelete.length === 0) {
+            res.status(404).json({ message: 'No matching fixed schedule bookings found.' });
+            return;
+        }
+
+        const { error: deleteError } = await supabase
+            .from('bookings')
+            .delete()
+            .in('id', idsToDelete);
+
+        if (deleteError) throw deleteError;
+
+        res.status(200).json({ message: `Successfully deleted ${idsToDelete.length} bookings from the schedule.` });
+    } catch (error) {
+        console.error('Error deleting fixed schedule:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+export const getFixedSchedules = async (req: Request, res: Response) => {
+    try {
+        const { data: bookings, error } = await supabase
+            .from('bookings')
+            .select(`
+                *,
+                rooms!inner(name),
+                users!inner(name)
+            `)
+            .eq('type', BookingType.ACADEMIC_FIXED)
+            .gte('date', new Date().toISOString().split('T')[0])
+            .order('date', { ascending: true });
+
+        if (error) throw error;
+
+        res.status(200).json({ schedules: bookings });
+    } catch (error) {
+        console.error('Error fetching fixed schedules:', error);
+        res.status(500).json({ message: 'Internal server error' });
     }
 }
