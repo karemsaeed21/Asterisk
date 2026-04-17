@@ -1,0 +1,138 @@
+import React from 'react';
+import { Navigate, Outlet, Link, useLocation } from 'react-router-dom';
+import { useAuth, Role } from '../context/AuthContext';
+import { 
+    LayoutDashboard, 
+    Calendar, 
+    PlusCircle, 
+    History, 
+    LogOut, 
+    ShieldCheck, 
+    Shield,
+    Users,
+    Menu,
+    X,
+    Sparkles
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const Layout: React.FC = () => {
+    const { user, logout, isAuthenticated } = useAuth();
+    const location = useLocation();
+    const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
+
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+
+    const navigation = [
+        { name: 'Insights', path: '/', icon: LayoutDashboard, roles: [Role.ADMIN, Role.BRANCH_MANAGER, Role.EMPLOYEE, Role.SECRETARY] },
+        { name: 'Approval Queue', path: '/admin/requests', icon: ShieldCheck, roles: [Role.ADMIN, Role.BRANCH_MANAGER] },
+        { name: 'Full Schedule', path: '/schedule', icon: Calendar, roles: [Role.ADMIN, Role.BRANCH_MANAGER] },
+        { name: 'Initiate Request', path: '/request/new', icon: PlusCircle, roles: [Role.EMPLOYEE, Role.SECRETARY, Role.ADMIN] },
+        { name: 'My History', path: '/history', icon: History, roles: [Role.EMPLOYEE, Role.SECRETARY, Role.ADMIN, Role.BRANCH_MANAGER] },
+        { name: 'Directory', path: '/admin/users', icon: Users, roles: [Role.ADMIN] },
+        { name: 'System Config', path: '/admin/settings', icon: Shield, roles: [Role.ADMIN] },
+    ];
+
+    const filteredNav = navigation.filter(item => item.roles.includes(user!.role));
+
+    return (
+        <div className="min-h-screen bg-bg-deep text-white flex relative overflow-hidden">
+            {/* Ambient Background Glows */}
+            <div className="absolute top-[10%] left-[10%] w-[800px] h-[800px] bg-brand-primary/[0.03] rounded-full blur-[150px] pointer-events-none" />
+            <div className="absolute bottom-[10%] right-[10%] w-[800px] h-[800px] bg-brand-secondary/[0.03] rounded-full blur-[150px] pointer-events-none" />
+
+            {/* Sidebar */}
+            <AnimatePresence mode="wait">
+                {isSidebarOpen && (
+                    <motion.aside 
+                        initial={{ x: -280, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: -280, opacity: 0 }}
+                        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                        className="w-[280px] bg-white/[0.02] backdrop-blur-3xl border-r border-white/5 p-8 flex flex-col z-50 fixed inset-y-0"
+                    >
+                        <div className="flex items-center gap-4 mb-16 px-2 group cursor-pointer" onClick={() => setIsSidebarOpen(false)}>
+                            <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-black shadow-lg shadow-white/5 transition-transform group-hover:scale-110">
+                                <Sparkles size={20} fill="black" />
+                            </div>
+                            <span className="font-display font-bold text-2xl tracking-tighter">Asterisk</span>
+                        </div>
+
+                        <nav className="flex-1 space-y-1">
+                            {filteredNav.map((item) => {
+                                const isActive = location.pathname === item.path;
+                                return (
+                                    <Link 
+                                        key={item.name}
+                                        to={item.path}
+                                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group relative ${
+                                            isActive 
+                                            ? 'text-white' 
+                                            : 'text-white/30 hover:text-white/60 hover:bg-white/[0.02]'
+                                        }`}
+                                    >
+                                        {isActive && (
+                                            <motion.div 
+                                                layoutId="nav-active"
+                                                className="absolute inset-0 bg-white/[0.05] border border-white/10 rounded-2xl"
+                                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                            />
+                                        )}
+                                        <item.icon size={20} className={`relative z-10 transition-colors ${isActive ? 'text-brand-primary' : ''}`} />
+                                        <span className="relative z-10 font-medium text-sm tracking-tight">{item.name}</span>
+                                    </Link>
+                                );
+                            })}
+                        </nav>
+
+                        <div className="mt-auto pt-8 border-t border-white/5 space-y-6">
+                            <div className="px-5 py-5 rounded-3xl bg-white/[0.03] border border-white/[0.05] relative overflow-hidden group">
+                                <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div className="flex items-center gap-4 relative z-10">
+                                    <div className="w-11 h-11 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary font-bold text-lg">
+                                        {user?.name.charAt(0)}
+                                    </div>
+                                    <div className="flex flex-col overflow-hidden">
+                                        <span className="text-sm font-semibold truncate text-white/90">{user?.name}</span>
+                                        <span className="text-[9px] text-white/30 uppercase tracking-[0.2em] font-black mt-0.5">{user?.role.replace('_', ' ')}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button 
+                                onClick={logout}
+                                className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-red-400/50 hover:text-red-400 hover:bg-red-400/5 transition-all duration-300 border border-transparent hover:border-red-400/10 group"
+                            >
+                                <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" />
+                                <span className="font-bold text-xs uppercase tracking-widest">Terminate Session</span>
+                            </button>
+                        </div>
+                    </motion.aside>
+                )}
+            </AnimatePresence>
+
+            {/* Content Area */}
+            <main className={`flex-1 transition-all duration-500 ease-[0.16, 1, 0.3, 1] ${isSidebarOpen ? 'pl-[280px]' : 'pl-0'}`}>
+                {/* Header/Breadcrumb area could go here */}
+                {!isSidebarOpen && (
+                   <motion.button 
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="fixed top-8 left-8 w-12 h-12 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl z-50 flex items-center justify-center text-white/40 hover:text-white transition-all shadow-2xl"
+                   >
+                        <Menu size={20} />
+                   </motion.button>
+                )}
+
+                <div className="max-w-[1400px] mx-auto p-8 lg:p-16 relative">
+                    <Outlet />
+                </div>
+            </main>
+        </div>
+    );
+};
+
+export default Layout;

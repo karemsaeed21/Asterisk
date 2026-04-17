@@ -1,0 +1,128 @@
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { supabase } from '../config/supabase.js';
+import { Role, User, UserPermissionOverrides, Delegation, DelegationStatus } from '../types/index.js';
+
+interface AuthPayload {
+  userId: string;
+  role: Role;
+}
+
+// Extend Express Request
+declare global {
+  namespace Express {
+    interface Request {
+      user?: User;
+      overrides?: UserPermissionOverrides;
+      activeDelegation?: Delegation;
+    }
+  }
+}
+
+export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+       res.status(401).json({ message: 'No token provided' });
+       return;
+    }
+
+    const token = authHeader.split(' ')[1];
+    const secret = process.env.JWT_SECRET || 'fallback_secret';
+    
+    let decoded: AuthPayload;
+    try {
+      decoded = jwt.verify(token, secret) as AuthPayload;
+    } catch (err) {
+       res.status(401).json({ message: 'Invalid token' });
+       return;
+    }
+
+    // Load User from Supabase
+    const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', decoded.userId)
+        .single();
+
+    if (userError || !user) {
+       res.status(401).json({ message: 'User not found' });
+       return;
+    }
+
+    req.user = user as User;
+
+    // Load Overrides from user_permissions_overrides table
+    const { data: overrides } = await supabase
+      .from('user_permissions_overrides')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+      
+    if (overrides) {
+      req.overrides = overrides as unknown as UserPermissionOverrides;
+    }
+
+    // Load Active Delegations from delegations table
+    const now = new Date().toISOString();
+    const { data: delegations } = await supabase
+      .from('delegations')
+      .select('*')
+      .eq('substitute_id', user.id)
+      .eq('status', DelegationStatus.ACTIVE);
+      
+    if (delegations) {
+        for (const del of delegations) {
+            if (now >= del.start_date && now <= del.end_date) {
+                req.activeDelegation = del as unknown as Delegation;
+                break; 
+            }
+        }
+    }
+
+    next();
+  } catch (error) {
+    console.error('Auth Middleware Error:', error);
+    res.status(500).json({ message: 'Server authentication error' });
+  }
+};
+
+export const requireRole = (allowedRoles: Role[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+       res.status(401).json({ message: 'Unauthorized' });
+       return;
+    }
+    
+    // Admin naturally overrides or has full access
+    if (req.user.role === Role.ADMIN) {
+      return next();
+    }
+
+    // Role check
+    if (allowedRoles.includes(req.user.role)) {
+      return next();
+    }
+    
+    res.status(403).json({ message: 'Forbidden: Insufficient role permissions' });
+  };
+};
+
+export const requireFeature = (featureName: keyof UserPermissionOverrides) => {
+    return (req: Request, res: Response, next: NextFunction) => {
+        if (!req.user) {
+             res.status(401).json({ message: 'Unauthorized' });
+             return;
+        }
+
+        if (req.user.role === Role.ADMIN) {
+            return next();
+        }
+
+        if (req.overrides && req.overrides[featureName]) {
+            return next();
+        }
+        
+        res.status(403).json({ message: `Forbidden: Requires feature ${String(featureName)}` });
+    }
+}
