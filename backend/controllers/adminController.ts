@@ -90,7 +90,7 @@ export const getPendingRequests = async (req: Request, res: Response) => {
 
 export const createFixedSchedule = async (req: Request, res: Response) => {
     try {
-        const { roomId, slotId, startDate, weeks = 16 } = req.body;
+        const { roomId, slotId, startDate, weeks = 16, academicDetails } = req.body;
         const user = req.user!;
 
         if (!roomId || !slotId || !startDate) {
@@ -116,7 +116,8 @@ export const createFixedSchedule = async (req: Request, res: Response) => {
                 type: BookingType.ACADEMIC_FIXED,
                 date: dateStr,
                 slot_id: Number(slotId),
-                status: BookingStatus.APPROVED
+                status: BookingStatus.APPROVED,
+                academic_details: academicDetails
             });
         }
 
@@ -226,6 +227,42 @@ export const getFixedSchedules = async (req: Request, res: Response) => {
         res.status(200).json({ schedules: bookings });
     } catch (error) {
         console.error('Error fetching fixed schedules:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+export const getDailySchedule = async (req: Request, res: Response) => {
+    try {
+        const { date } = req.query as { date?: string };
+
+        if (!date) {
+            res.status(400).json({ message: 'date is required' });
+            return;
+        }
+
+        const { data: bookings, error } = await supabase
+            .from('bookings')
+            .select(`
+                *,
+                rooms!inner(id, name, type, capacity),
+                users(name)
+            `)
+            .eq('date', date);
+
+        if (error) throw error;
+
+        // Fetch all active rooms to render empty rows in the UI
+        const { data: rooms, error: roomError } = await supabase
+            .from('rooms')
+            .select('*')
+            .eq('is_active', true)
+            .order('name', { ascending: true });
+
+        if (roomError) throw roomError;
+
+        res.status(200).json({ bookings, rooms });
+    } catch (error) {
+        console.error('Error fetching daily schedule:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 }

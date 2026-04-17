@@ -4,7 +4,7 @@ import { Booking, BookingType, BookingStatus, Role, AASTSlot } from '../types/in
 
 export const createBooking = async (req: Request, res: Response) => {
     try {
-        const { roomId, type, date, slotId, multiPurposeDetails } = req.body;
+        const { roomId, type, date, slotId, multiPurposeDetails, academicDetails } = req.body;
         const user = req.user!;
 
         // 0. Fetch Dynamic System Settings from system_settings table
@@ -64,7 +64,7 @@ export const createBooking = async (req: Request, res: Response) => {
         }
 
         // 3. Routing Approval
-        let initialStatus = BookingStatus.PENDING_ADMIN;
+        let initialStatus: BookingStatus = BookingStatus.PENDING_ADMIN;
         if (type === BookingType.MULTI_PURPOSE) {
              if (user.role === Role.ADMIN) initialStatus = BookingStatus.PENDING_BRANCH_MGR;
         } else if (user.role === Role.ADMIN) {
@@ -81,7 +81,8 @@ export const createBooking = async (req: Request, res: Response) => {
                 date: date,
                 slot_id: numericSlotId,
                 status: initialStatus,
-                multi_purpose_details: type === BookingType.MULTI_PURPOSE ? multiPurposeDetails : null
+                multi_purpose_details: type === BookingType.MULTI_PURPOSE ? multiPurposeDetails : null,
+                academic_details: (type === BookingType.ACADEMIC_FIXED || type === BookingType.ACADEMIC_EXCEPTIONAL) ? academicDetails : null
             })
             .select()
             .single();
