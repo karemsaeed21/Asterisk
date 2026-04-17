@@ -230,3 +230,39 @@ export const getFixedSchedules = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 }
+
+export const getDailySchedule = async (req: Request, res: Response) => {
+    try {
+        const { date } = req.query as { date?: string };
+
+        if (!date) {
+            res.status(400).json({ message: 'date is required' });
+            return;
+        }
+
+        const { data: bookings, error } = await supabase
+            .from('bookings')
+            .select(`
+                *,
+                rooms!inner(id, name, type, capacity),
+                users(name)
+            `)
+            .eq('date', date);
+
+        if (error) throw error;
+
+        // Fetch all active rooms to render empty rows in the UI
+        const { data: rooms, error: roomError } = await supabase
+            .from('rooms')
+            .select('*')
+            .eq('is_active', true)
+            .order('name', { ascending: true });
+
+        if (roomError) throw roomError;
+
+        res.status(200).json({ bookings, rooms });
+    } catch (error) {
+        console.error('Error fetching daily schedule:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+}

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { login, signup } from '../controllers/authController.js';
 import { getAllRooms, getRoomAvailability, createRoom } from '../controllers/roomController.js';
 import { createBooking, getMyRequests } from '../controllers/bookingController.js';
-import { approveBooking, rejectBookingWithAlternatives, getPendingRequests, createFixedSchedule, deleteFixedSchedule, getFixedSchedules } from '../controllers/adminController.js';
+import { approveBooking, rejectBookingWithAlternatives, getPendingRequests, createFixedSchedule, deleteFixedSchedule, getFixedSchedules, getDailySchedule } from '../controllers/adminController.js';
 import { getDailyMorningReport, getVIPNotifications } from '../controllers/reportController.js';
 import { getSettings, updateSettings } from '../controllers/settingsController.js';
 import { getAllUsers, updateUserOverride, createDelegation, revokeDelegation, getPendingUsers, approveUser, rejectUser } from '../controllers/userController.js';
@@ -34,6 +34,9 @@ router.post('/admin/bookings/:bookingId/reject', authenticate, requireRole([Role
 router.post('/admin/schedules/fixed', authenticate, requireRole([Role.ADMIN]), createFixedSchedule);
 router.delete('/admin/schedules/fixed', authenticate, requireRole([Role.ADMIN]), deleteFixedSchedule);
 router.get('/admin/schedules/fixed', authenticate, requireRole([Role.ADMIN]), getFixedSchedules);
+
+// Global Schedule Grid
+router.get('/admin/schedules/daily', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), getDailySchedule);
 
 // Reports & Notifications
 router.get('/admin/reports/morning', authenticate, requireRole([Role.ADMIN]), getDailyMorningReport);

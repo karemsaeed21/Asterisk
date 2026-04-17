@@ -9,11 +9,14 @@ import {
     Shield,
     Loader2,
     Calendar,
-    Search
+    Search,
+    ArrowRight
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 
 const FixedSchedules = () => {
+    const navigate = useNavigate();
     const [rooms, setRooms] = useState<any[]>([]);
     const [schedules, setSchedules] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -404,9 +407,17 @@ const FixedSchedules = () => {
                                         <td className="py-6 text-xs text-white/60 font-mono">
                                             {seq.startDate}
                                         </td>
-                                        <td className="py-6 pr-4 text-right">
-                                            <span className="text-sm font-black text-emerald-400">{seq.count}</span>
-                                            <span className="text-[10px] text-white/30 uppercase tracking-widest ml-1">Weeks</span>
+                                        <td className="py-6 pr-4 text-right flex flex-col items-end gap-2">
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-sm font-black text-emerald-400">{seq.count}</span>
+                                                <span className="text-[10px] text-white/30 uppercase tracking-widest">Weeks</span>
+                                            </div>
+                                            <button 
+                                                onClick={() => navigate(`/schedule?date=${seq.startDate}`)}
+                                                className="px-3 py-1.5 rounded-lg bg-brand-primary/10 text-[9px] font-black uppercase tracking-widest text-brand-primary hover:bg-brand-primary hover:text-black transition-all flex items-center gap-1"
+                                            >
+                                                View Grid <ArrowRight size={10} />
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}

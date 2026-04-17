@@ -12,6 +12,7 @@ import RequestTypeSelector from './pages/RequestTypeSelector';
 import AdminSettings from './pages/Admin/Settings';
 import Users from './pages/Admin/Users';
 import FixedSchedules from './pages/Admin/FixedSchedules';
+import FullSchedule from './pages/Admin/FullSchedule';
 
 import History from './pages/Dashboard/History';
 
@@ -25,7 +26,7 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<UserDashboard />} />
           <Route path="admin/requests" element={<AdminDashboard />} />
-          <Route path="schedule" element={<AdminDashboard />} />
+          <Route path="schedule" element={<FullSchedule />} />
           <Route path="request/new" element={<RequestTypeSelector />} />
           <Route path="request/multi-purpose" element={<MultiPurposeForm />} />
           <Route path="request/exceptional" element={<ExceptionalBookingForm />} />
