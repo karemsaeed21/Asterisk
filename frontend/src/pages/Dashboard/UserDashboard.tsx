@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth, Role } from '../../context/AuthContext';
-import { Plus, Clock, CheckCircle2, XCircle, ArrowRight, Zap, Calendar as CalendarIcon, Filter, Shield } from 'lucide-react';
+import { Plus, Clock, CheckCircle2, XCircle, ArrowRight, Zap, Calendar as CalendarIcon, Filter, Shield, RefreshCw } from 'lucide-react';
 import api from '../../api/client';
 import { Link } from 'react-router-dom';
+import DelegationRequestModal from '../../components/Modals/DelegationRequestModal';
 
 const UserDashboard = () => {
     const { user } = useAuth();
     const [requests, setRequests] = useState<any[]>([]);
     const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 });
+    const [isDelegationModalOpen, setIsDelegationModalOpen] = useState(false);
+    const [activeProxyFor, setActiveProxyFor] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchRequests = async () => {
@@ -28,6 +31,12 @@ const UserDashboard = () => {
             }
         };
         fetchRequests();
+
+        // Check for active proxy identity in auth user info
+        // (Assuming authMiddleware updates req.user.name or we have a flag)
+        // For now, let's just check if activeDelegation exists in the auth context?
+        // Actually, let's fetch it or rely on the fact that if they are acting, 
+        // they might want to know.
     }, []);
 
     const statCards = [
@@ -184,6 +193,22 @@ const UserDashboard = () => {
                         </div>
                     )}
 
+                    <div className="group p-8 rounded-[2.5rem] bg-gradient-to-br from-brand-primary/20 to-transparent border border-brand-primary/20 hover:border-brand-primary/40 transition-all">
+                        <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 flex items-center justify-center text-brand-primary mb-6">
+                            <RefreshCw size={24} />
+                        </div>
+                        <h4 className="text-white font-bold mb-2">Temporal Proxy</h4>
+                        <p className="text-white/40 text-sm leading-relaxed mb-6 font-light">
+                            Designate a substitute to manage your responsibilities during planned absence.
+                        </p>
+                        <button 
+                            onClick={() => setIsDelegationModalOpen(true)}
+                            className="w-full py-4 text-xs font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all text-white/60 hover:text-white"
+                        >
+                            Request Substitute
+                        </button>
+                    </div>
+
                     <div className="p-8 rounded-[2.5rem] bg-white/2 border border-white/5">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-2 h-2 rounded-full bg-brand-primary animate-pulse" />
@@ -195,6 +220,11 @@ const UserDashboard = () => {
                     </div>
                 </div>
             </div>
+            
+            <DelegationRequestModal 
+                isOpen={isDelegationModalOpen} 
+                onClose={() => setIsDelegationModalOpen(false)}
+            />
         </div>
     );
 };

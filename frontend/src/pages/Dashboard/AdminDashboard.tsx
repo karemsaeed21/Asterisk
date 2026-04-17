@@ -13,7 +13,7 @@ import {
     Shield,
     Search
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, Role } from '../../context/AuthContext';
 import api from '../../api/client';
 import WeeklyGrid from '../../components/Calendar/WeeklyGrid';
 import AvailabilitySearch from '../../components/Admin/AvailabilitySearch';
@@ -198,10 +198,23 @@ const AdminDashboard = () => {
                                         </div>
                                         <div>
                                             <div className="font-bold text-base text-white/90 truncate max-w-[120px]">UID: {req.requesterId}</div>
-                                            <div className="flex items-center gap-2 mt-1">
+                                            <div className="flex flex-wrap items-center gap-2 mt-1">
                                                 <span className="px-2 py-0.5 rounded-md bg-brand-primary/10 text-[8px] text-brand-primary uppercase tracking-widest font-black border border-brand-primary/20">
                                                     {req.type.replace('_', ' ')}
                                                 </span>
+                                                {req.type === 'MULTI_PURPOSE' && (
+                                                    <span className={`px-2 py-0.5 rounded-md text-[8px] uppercase tracking-widest font-black border animate-pulse ${
+                                                        req.status === 'PENDING_BRANCH_MGR' 
+                                                        ? 'bg-rose-500/20 text-rose-500 border-rose-500/30' 
+                                                        : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                                    }`}>
+                                                        {user?.role === Role.BRANCH_MANAGER && req.status === 'PENDING_BRANCH_MGR' 
+                                                            ? 'Final Sign-off Required' 
+                                                            : req.status === 'PENDING_BRANCH_MGR' 
+                                                                ? 'Pending BM Finalization' 
+                                                                : 'Awaiting Admin Clearance'}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

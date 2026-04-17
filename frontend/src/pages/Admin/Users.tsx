@@ -31,8 +31,9 @@ const UserManagement = () => {
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
     const [isDelegationModalOpen, setIsDelegationModalOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'ALL' | 'PENDING'>('ALL');
+    const [activeTab, setActiveTab] = useState<'ALL' | 'PENDING' | 'DELEGATIONS'>('ALL');
     const [pendingUsers, setPendingUsers] = useState<any[]>([]);
+    const [pendingDelegations, setPendingDelegations] = useState<any[]>([]);
     const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
     const [selectedRole, setSelectedRole] = useState('');
     
@@ -62,14 +63,50 @@ const UserManagement = () => {
             if (activeTab === 'ALL') {
                 const res = await api.get('/admin/users');
                 setUsers(res.data.users);
-            } else {
+                
+                // Pre-fetch pending counts for badges
+                const [pUsers, pDels] = await Promise.all([
+                    api.get('/admin/users/pending'),
+                    api.get('/admin/delegations/pending')
+                ]);
+                setPendingUsers(pUsers.data.users);
+                setPendingDelegations(pDels.data.delegations);
+            } else if (activeTab === 'PENDING') {
                 const res = await api.get('/admin/users/pending');
                 setPendingUsers(res.data.users);
+            } else if (activeTab === 'DELEGATIONS') {
+                const res = await api.get('/admin/delegations/pending');
+                setPendingDelegations(res.data.delegations);
             }
         } catch (err) {
-            console.error('Failed to fetch users');
+            console.error('Failed to fetch data');
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleApproveDelegation = async (id: string) => {
+        setIsSubmitting(true);
+        try {
+            await api.post(`/admin/delegations/${id}/approve`);
+            fetchData();
+        } catch (err) {
+            alert('Failed to authorize proxy');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleRejectDelegation = async (id: string) => {
+        if (!confirm('Purge this delegation request?')) return;
+        setIsSubmitting(true);
+        try {
+            await api.delete(`/admin/delegations/${id}/reject`);
+            fetchData();
+        } catch (err) {
+            alert('Failed to purge request');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -183,10 +220,21 @@ const UserManagement = () => {
                             onClick={() => setActiveTab('PENDING')}
                             className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === 'PENDING' ? 'bg-white text-black shadow-lg' : 'text-white/40 hover:text-white'}`}
                         >
-                            Pending Clearance
-                            {pendingUsers.length > 0 && activeTab === 'ALL' && (
-                                <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand-primary rounded-full flex items-center justify-center text-[8px] text-white">
+                            Identity Clearance
+                            {pendingUsers.length > 0 && activeTab !== 'PENDING' && (
+                                <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full flex items-center justify-center text-[8px] text-white">
                                     {pendingUsers.length}
+                                </span>
+                            )}
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('DELEGATIONS')}
+                            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === 'DELEGATIONS' ? 'bg-white text-black shadow-lg' : 'text-white/40 hover:text-white'}`}
+                        >
+                            Proxy Queue
+                            {pendingDelegations.length > 0 && activeTab !== 'DELEGATIONS' && (
+                                <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand-secondary rounded-full flex items-center justify-center text-[8px] text-black">
+                                    {pendingDelegations.length}
                                 </span>
                             )}
                         </button>
@@ -269,7 +317,7 @@ const UserManagement = () => {
                         </motion.div>
                     ))}
                 </div>
-            ) : (
+            ) : activeTab === 'PENDING' ? (
                 <div className="space-y-4">
                     {pendingUsers.length > 0 ? pendingUsers.map((user, i) => (
                         <motion.div 
@@ -307,6 +355,77 @@ const UserManagement = () => {
                         <div className="p-24 rounded-[4rem] bg-white/[0.01] border border-dashed border-white/5 text-center">
                             <CheckCircle2 size={40} className="text-white/10 mx-auto mb-6" />
                             <p className="text-[10px] uppercase tracking-[0.4em] font-black text-white/20">All Identity Access Factor Cleared</p>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div className="grid gap-6">
+                    {pendingDelegations.length > 0 ? pendingDelegations.map((del, i) => (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.1 }}
+                            key={del.id}
+                            className="p-10 rounded-[3rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all relative overflow-hidden group"
+                        >
+                            <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:scale-110 transition-transform">
+                                <RefreshCw size={120} />
+                            </div>
+                            
+                            <div className="flex flex-col md:flex-row items-center justify-between gap-10 relative z-10">
+                                <div className="flex items-center gap-12">
+                                    <div className="flex flex-col items-center gap-4">
+                                        <div className="w-20 h-20 rounded-[1.5rem] bg-white/5 border border-white/10 flex items-center justify-center text-white/40 font-black text-2xl">
+                                            {del.delegator.name.charAt(0)}
+                                        </div>
+                                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">Delegator</span>
+                                    </div>
+                                    
+                                    <div className="h-px w-24 bg-gradient-to-r from-transparent via-white/10 to-transparent relative">
+                                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#0a0a1a] border border-white/10 flex items-center justify-center">
+                                            <ArrowLeft size={14} className="text-white/20" />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col items-center gap-4">
+                                        <div className="w-20 h-20 rounded-[1.5rem] bg-brand-secondary/10 border border-brand-secondary/20 flex items-center justify-center text-brand-secondary font-black text-2xl shadow-[0_0_30px_-10px_rgba(255,193,7,0.2)]">
+                                            {del.substitute.name.charAt(0)}
+                                        </div>
+                                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-brand-secondary/40">Substitute</span>
+                                    </div>
+
+                                    <div className="space-y-1 ml-4">
+                                        <div className="text-xl font-display font-medium text-white">{del.substitute.name}</div>
+                                        <div className="text-[10px] font-black text-white/20 uppercase tracking-widest">Acting as: {del.delegator.role?.replace('_', ' ')}</div>
+                                        <div className="flex items-center gap-3 mt-4 text-[10px] font-bold text-white/40">
+                                            <Calendar size={14} className="text-brand-secondary" />
+                                            {new Date(del.start_date).toLocaleDateString()} — {new Date(del.end_date).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-4">
+                                    <button 
+                                        onClick={() => handleApproveDelegation(del.id)}
+                                        disabled={isSubmitting}
+                                        className="px-10 py-4 bg-brand-secondary text-black text-[10px] font-black uppercase tracking-widest rounded-2xl hover:shadow-[0_0_30px_-5px_rgba(255,193,7,0.4)] transition-all flex items-center gap-3"
+                                    >
+                                        Authorize Proxy
+                                    </button>
+                                    <button 
+                                        onClick={() => handleRejectDelegation(del.id)}
+                                        disabled={isSubmitting}
+                                        className="px-10 py-4 bg-white/5 text-white/40 text-[10px] font-black uppercase tracking-widest rounded-2xl border border-white/10 hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-500 transition-all"
+                                    >
+                                        Cancel Protocol
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )) : (
+                        <div className="p-24 rounded-[4rem] bg-white/[0.01] border border-dashed border-white/5 text-center">
+                            <Activity size={40} className="text-white/10 mx-auto mb-6" />
+                            <p className="text-[10px] uppercase tracking-[0.4em] font-black text-white/20">No Pending Proxy Requests</p>
                         </div>
                     )}
                 </div>

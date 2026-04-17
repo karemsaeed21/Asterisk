@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { login, signup } from '../controllers/authController.js';
+import { login, signup, getMe } from '../controllers/authController.js';
 import { getAllRooms, getRoomAvailability, createRoom } from '../controllers/roomController.js';
 import { createBooking, getMyRequests } from '../controllers/bookingController.js';
 import { approveBooking, rejectBookingWithAlternatives, getPendingRequests, createFixedSchedule, deleteFixedSchedule, getFixedSchedules, getDailySchedule, updateBookingData, deleteBooking } from '../controllers/adminController.js';
 import { getDailyMorningReport, getVIPNotifications } from '../controllers/reportController.js';
 import { getSettings, updateSettings, getPublicSettings } from '../controllers/settingsController.js';
-import { getAllUsers, updateUserOverride, createDelegation, revokeDelegation, getPendingUsers, approveUser, rejectUser } from '../controllers/userController.js';
+import { getAllUsers, updateUserOverride, createDelegation, revokeDelegation, getPendingUsers, approveUser, rejectUser, getPendingDelegations, approveDelegation, rejectDelegation } from '../controllers/userController.js';
 import { authenticate, requireRole } from '../middleware/authMiddleware.js';
 import { Role } from '../types/index.js';
 
@@ -17,6 +17,7 @@ router.get('/settings/public', authenticate, getPublicSettings);
 // Auth Endpoints
 router.post('/auth/login', login);
 router.post('/auth/signup', signup);
+router.get('/auth/me', authenticate, getMe);
 
 // Room Endpoints
 router.get('/rooms', authenticate, getAllRooms);
@@ -59,6 +60,9 @@ router.post('/admin/users/:userId/approve', authenticate, requireRole([Role.ADMI
 router.delete('/admin/users/:userId/reject', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), rejectUser);
 
 // Delegation (Self-service or Admin managed)
+router.get('/admin/delegations/pending', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), getPendingDelegations);
+router.post('/admin/delegations/:id/approve', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), approveDelegation);
+router.delete('/admin/delegations/:id/reject', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), rejectDelegation);
 router.post('/delegations', authenticate, createDelegation);
 router.patch('/delegations/:delegationId/revoke', authenticate, revokeDelegation);
 

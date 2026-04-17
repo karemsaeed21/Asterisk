@@ -130,6 +130,10 @@ const FixedSchedules = () => {
 
     const activeSequences = Object.values(groupedSchedules);
 
+    // Impact Summary Logic
+    const showImpact = selectedRoom && startDate && weeks > 0;
+    const impactEndDate = startDate ? new Date(new Date(startDate).getTime() + (weeks - 1) * 7 * 24 * 60 * 60 * 1000).toLocaleDateString() : '';
+
     return (
         <div className="max-w-6xl mx-auto pb-24 space-y-16">
             {/* Command Header */}
@@ -144,7 +148,7 @@ const FixedSchedules = () => {
                         Academic Blueprinting
                     </div>
                     <h1 className="text-6xl font-display font-medium tracking-tighter text-white">
-                        Semester <span className="text-white/20">Operations</span>
+                        Deployment <span className="text-white/20">Control</span>
                     </h1>
                     <p className="text-white/40 text-lg max-w-xl font-light leading-relaxed">
                         Strategically deploy and revoke 16-week repeating academic structures across all campus sectors.
@@ -169,9 +173,12 @@ const FixedSchedules = () => {
                         <LayoutTemplate size={120} />
                     </div>
                     <div className="relative z-10 space-y-8">
-                        <div>
-                            <h3 className="text-2xl font-display font-medium text-white">Deploy Scheme</h3>
-                            <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold mt-1">Initiate 16-Week Cycle</p>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-2xl font-display font-medium text-white">Initiate Cycle</h3>
+                                <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold mt-1">Structural Deployment</p>
+                            </div>
+                            <div className="w-10 h-10 rounded-full border-2 border-brand-primary/20 border-t-brand-primary animate-spin" />
                         </div>
 
                         <form onSubmit={handleCreateSchedule} className="space-y-6">
@@ -256,17 +263,47 @@ const FixedSchedules = () => {
                                 </div>
                             </div>
 
+                            {/* Impact Summary Section */}
+                            <AnimatePresence>
+                                {showImpact && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-[2rem] space-y-4"
+                                    >
+                                        <div className="flex items-center gap-3 text-brand-primary">
+                                            <Shield size={16} />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">Pre-deployment Audit</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <div className="text-[8px] uppercase tracking-widest text-white/20">Total Reservations</div>
+                                                <div className="text-xl font-display font-medium text-white">{weeks} Total Slots</div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <div className="text-[8px] uppercase tracking-widest text-white/20">Cycle Terminus</div>
+                                                <div className="text-xl font-display font-medium text-white">{impactEndDate}</div>
+                                            </div>
+                                        </div>
+                                        <div className="text-[9px] text-white/30 italic">
+                                            * Structural integrity will be verified against local conflicts upon execution.
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
                             <button 
                                 disabled={isSubmitting || isLoading}
-                                className="w-full mt-4 py-4 bg-brand-primary text-black rounded-2xl text-xs font-bold uppercase tracking-widest hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.4)] transition-all flex items-center justify-center gap-2 relative overflow-hidden group"
+                                className="w-full py-5 bg-white text-black rounded-[2rem] text-xs font-black uppercase tracking-widest hover:shadow-[0_0_40px_-5px_rgba(255,255,255,0.4)] transition-all flex items-center justify-center gap-3 relative overflow-hidden group"
                             >
-                                <div className="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300" />
+                                <div className="absolute inset-0 bg-brand-primary translate-y-[100%] group-hover:translate-y-0 transition-transform duration-500" />
                                 {isSubmitting ? (
                                     <Loader2 size={18} className="animate-spin text-black relative z-10" />
                                 ) : (
                                     <>
                                         <Plus size={18} className="relative z-10" />
-                                        <span className="relative z-10">Deploy Architecture</span>
+                                        <span className="relative z-10">Execute Global Deployment</span>
                                     </>
                                 )}
                             </button>
