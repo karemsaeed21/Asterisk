@@ -28,7 +28,7 @@ const ExceptionalBookingForm = () => {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const res = await api.get('/admin/settings');
+                const res = await api.get('/settings/public');
                 setSlotConfig(res.data.slots);
             } catch (err) {
                 console.error('Failed to fetch settings');

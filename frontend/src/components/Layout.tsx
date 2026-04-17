@@ -31,7 +31,7 @@ const Layout: React.FC = () => {
             title: 'Core Operations',
             items: [
                 { name: 'Insights', path: '/', icon: LayoutDashboard, roles: [Role.ADMIN, Role.BRANCH_MANAGER, Role.EMPLOYEE, Role.SECRETARY] },
-                { name: 'Initiate Request', path: '/request/new', icon: PlusCircle, roles: [Role.EMPLOYEE, Role.SECRETARY, Role.ADMIN] },
+                { name: 'Initiate Request', path: '/request/new', icon: PlusCircle, roles: [Role.EMPLOYEE, Role.SECRETARY, Role.ADMIN, Role.BRANCH_MANAGER] },
                 { name: 'My History', path: '/history', icon: History, roles: [Role.EMPLOYEE, Role.SECRETARY, Role.ADMIN, Role.BRANCH_MANAGER] },
             ]
         },
@@ -39,15 +39,15 @@ const Layout: React.FC = () => {
             title: 'Room Management',
             items: [
                 { name: 'Full Schedule', path: '/schedule', icon: Calendar, roles: [Role.ADMIN, Role.BRANCH_MANAGER] },
-                { name: 'Semester Schedules', path: '/admin/schedules', icon: CalendarDays, roles: [Role.ADMIN] },
+                { name: 'Semester Schedules', path: '/admin/schedules', icon: CalendarDays, roles: [Role.ADMIN, Role.BRANCH_MANAGER] },
                 { name: 'Approval Queue', path: '/admin/requests', icon: ShieldCheck, roles: [Role.ADMIN, Role.BRANCH_MANAGER] },
             ]
         },
         {
             title: 'System Access',
             items: [
-                { name: 'Directory', path: '/admin/users', icon: Users, roles: [Role.ADMIN] },
-                { name: 'System Config', path: '/admin/settings', icon: Shield, roles: [Role.ADMIN] },
+                { name: 'Directory', path: '/admin/users', icon: Users, roles: [Role.ADMIN, Role.BRANCH_MANAGER] },
+                { name: 'System Config', path: '/admin/settings', icon: Shield, roles: [Role.ADMIN, Role.BRANCH_MANAGER] },
             ]
         }
     ];

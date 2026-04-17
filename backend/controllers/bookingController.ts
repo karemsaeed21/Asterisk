@@ -65,10 +65,14 @@ export const createBooking = async (req: Request, res: Response) => {
 
         // 3. Routing Approval
         let initialStatus: BookingStatus = BookingStatus.PENDING_ADMIN;
-        if (type === BookingType.MULTI_PURPOSE) {
-             if (user.role === Role.ADMIN) initialStatus = BookingStatus.PENDING_BRANCH_MGR;
-        } else if (user.role === Role.ADMIN) {
+        if (user.role === Role.BRANCH_MANAGER) {
              initialStatus = BookingStatus.APPROVED;
+        } else if (user.role === Role.ADMIN) {
+             if (type === BookingType.MULTI_PURPOSE) {
+                 initialStatus = BookingStatus.PENDING_BRANCH_MGR;
+             } else {
+                 initialStatus = BookingStatus.APPROVED;
+             }
         }
 
         // 4. Create Record in Supabase

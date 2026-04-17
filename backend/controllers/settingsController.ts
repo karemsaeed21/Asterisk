@@ -39,6 +39,42 @@ export const getSettings = async (req: Request, res: Response) => {
     }
 };
 
+export const getPublicSettings = async (req: Request, res: Response) => {
+    // This is a version of getSettings that returns limited non-sensitive configuration
+    // currently just slots and slot mode.
+    try {
+        const { data: settings, error } = await supabase
+            .from('system_settings')
+            .select('*')
+            .eq('id', 'config')
+            .single();
+
+        if (error || !settings) {
+            // Return defaults if not found
+            res.status(200).json({
+                slot_mode: 'STANDARD',
+                slots: [
+                    { id: 1, startTime: '08:30', hour: 8.5 },
+                    { id: 2, startTime: '10:30', hour: 10.5 },
+                    { id: 3, startTime: '12:30', hour: 12.5 },
+                    { id: 4, startTime: '02:30', hour: 14.5 },
+                    { id: 5, startTime: '04:30', hour: 16.5 },
+                    { id: 6, startTime: '06:30', hour: 18.5 },
+                ]
+            });
+            return;
+        }
+
+        res.status(200).json({
+            slotMode: settings.slot_mode,
+            slots: settings.slots
+        });
+    } catch (error) {
+        console.error('Error fetching public settings:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
 export const updateSettings = async (req: Request, res: Response) => {
     try {
         const { slotMode, slots } = req.body;

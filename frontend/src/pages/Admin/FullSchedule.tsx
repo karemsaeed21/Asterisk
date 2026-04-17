@@ -9,10 +9,15 @@ import {
     Clock,
     BookOpen,
     Users,
-    AlertCircle
+    AlertCircle,
+    X,
+    Save,
+    Trash2,
+    Edit3
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../api/client';
+import { AnimatePresence } from 'framer-motion';
 
 const FullSchedule = () => {
     const [searchParams] = useSearchParams();
@@ -22,10 +27,24 @@ const FullSchedule = () => {
     const [rooms, setRooms] = useState<any[]>([]);
     const [bookings, setBookings] = useState<any[]>([]);
 
+    // Edit Modal State
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [selectedBooking, setSelectedBooking] = useState<any>(null);
+    const [editForm, setEditForm] = useState({
+        roomId: '',
+        slotId: 1,
+        date: '',
+        subjectName: '',
+        faculty: '',
+        purpose: ''
+    });
+    const [isSaving, setIsSaving] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
-                const settingsRes = await api.get('/admin/settings');
+                const settingsRes = await api.get('/settings/public');
                 setSlotConfig(settingsRes.data.slots);
             } catch (err) {
                 console.error("Failed to fetch settings");
@@ -56,6 +75,75 @@ const FullSchedule = () => {
         setCurrentDate(dateObj.toISOString().split('T')[0]);
     };
 
+    const handleCellClick = (booking: any) => {
+        if (!booking) return;
+        setSelectedBooking(booking);
+        setEditForm({
+            roomId: booking.room_id,
+            slotId: booking.slot_id,
+            date: booking.date,
+            subjectName: booking.academic_details?.subjectName || '',
+            faculty: booking.academic_details?.faculty || '',
+            purpose: booking.multi_purpose_details?.purpose || ''
+        });
+        setIsEditModalOpen(true);
+    };
+
+    const handleUpdate = async () => {
+        if (!selectedBooking) return;
+        setIsSaving(true);
+        try {
+            const payload: any = {
+                roomId: editForm.roomId,
+                slotId: Number(editForm.slotId),
+                date: editForm.date,
+            };
+
+            if (selectedBooking.type === 'MULTI_PURPOSE') {
+                payload.multiPurposeDetails = {
+                    ...selectedBooking.multi_purpose_details,
+                    purpose: editForm.purpose
+                };
+            } else {
+                payload.academicDetails = {
+                    faculty: editForm.faculty,
+                    subjectName: editForm.subjectName
+                };
+            }
+
+            await api.put(`/admin/bookings/${selectedBooking.id}`, payload);
+            
+            // Refresh local data
+            const res = await api.get(`/admin/schedules/daily?date=${currentDate}`);
+            setBookings(res.data.bookings || []);
+            setIsEditModalOpen(false);
+            alert('Booking successfully restructured.');
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to update booking.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!selectedBooking) return;
+        if (!confirm('Are you absolutely certain you want to annihilate this booking? This bypasses all standard protocols.')) return;
+        
+        setIsDeleting(true);
+        try {
+            await api.delete(`/admin/bookings/${selectedBooking.id}`);
+            
+            // Refresh local data
+            const res = await api.get(`/admin/schedules/daily?date=${currentDate}`);
+            setBookings(res.data.bookings || []);
+            setIsEditModalOpen(false);
+        } catch (err: any) {
+            alert('Annihilation failed.');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     const getBookingForCell = (roomId: string, slotId: number) => {
         return bookings.find(b => b.room_id === roomId && b.slot_id === slotId);
     };
@@ -63,7 +151,7 @@ const FullSchedule = () => {
     const renderCell = (booking: any) => {
         if (!booking) {
             return (
-                <div className="w-full h-full min-h-[100px] bg-white/[0.01] rounded-2xl border border-white/5 border-dashed flex items-center justify-center group-hover:border-white/10 transition-colors">
+                <div className="w-full h-full min-h-[100px] bg-white/[0.01] rounded-2xl border border-white/5 border-dashed flex items-center justify-center group-hover:border-white/10 transition-colors cursor-default">
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/10 group-hover:text-white/20 transition-colors">Available</span>
                 </div>
             );
@@ -72,8 +160,17 @@ const FullSchedule = () => {
         const isPending = booking.status === 'PENDING_ADMIN' || booking.status === 'PENDING_BRANCH_MGR';
         const isMultiPurpose = booking.type === 'MULTI_PURPOSE';
 
+        const cellWrapper = (content: React.ReactNode) => (
+            <div 
+                onClick={() => handleCellClick(booking)}
+                className="cursor-pointer hover:scale-[1.02] transition-transform duration-200 h-full"
+            >
+                {content}
+            </div>
+        );
+
         if (isPending) {
-            return (
+            return cellWrapper(
                 <div className="w-full h-full min-h-[100px] bg-amber-500/5 rounded-2xl border border-amber-500/20 p-4 flex flex-col justify-between">
                     <div className="flex items-center justify-between">
                         <span className="w-6 h-6 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
@@ -90,7 +187,7 @@ const FullSchedule = () => {
         }
 
         if (isMultiPurpose) {
-            return (
+            return cellWrapper(
                 <div className="w-full h-full min-h-[100px] bg-cyan-500/5 rounded-2xl border border-cyan-500/20 p-4 flex flex-col justify-between shadow-[0_0_20px_-5px_rgba(6,182,212,0.1)]">
                     <div className="flex items-center justify-between">
                         <span className="w-6 h-6 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-500">
@@ -107,7 +204,7 @@ const FullSchedule = () => {
         }
 
         // Academic (Fixed or Exceptional)
-        return (
+        return cellWrapper(
             <div className="w-full h-full min-h-[100px] bg-brand-primary/5 rounded-2xl border border-brand-primary/20 p-4 flex flex-col justify-between shadow-[0_0_20px_-5px_rgba(var(--brand-primary),0.1)] relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-2 opacity-5 translate-x-2 -translate-y-2">
                     <BookOpen size={64} />
@@ -221,6 +318,139 @@ const FullSchedule = () => {
                     </div>
                 </motion.div>
             )}
+
+            {/* Admin Override Modal */}
+            <AnimatePresence>
+                {isEditModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsEditModalOpen(false)}
+                            className="absolute inset-0 bg-black/80 backdrop-blur-xl"
+                        />
+                        
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="w-full max-w-xl bg-[#0a0a1a] border border-white/10 rounded-[3rem] p-10 relative z-10 shadow-2xl overflow-hidden"
+                        >
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-brand-primary/50 to-transparent opacity-50" />
+                            
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2 text-brand-primary font-bold text-[10px] uppercase tracking-[0.4em]">
+                                        <Edit3 size={14} />
+                                        Override Interface
+                                    </div>
+                                    <h2 className="text-3xl font-display font-medium text-white tracking-tight">Restructure Booking</h2>
+                                </div>
+                                <button 
+                                    onClick={() => setIsEditModalOpen(false)}
+                                    className="w-12 h-12 flex items-center justify-center bg-white/5 border border-white/10 rounded-2xl text-white/40 hover:text-white hover:bg-white/10 transition-all"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="space-y-6">
+                                {/* Sector & Slot */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] uppercase tracking-[0.2em] font-black text-white/30 ml-2">Campus Sector</label>
+                                        <select 
+                                            value={editForm.roomId}
+                                            onChange={(e) => setEditForm({...editForm, roomId: e.target.value})}
+                                            className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-brand-primary/50 transition-all appearance-none"
+                                        >
+                                            {rooms.map(r => (
+                                                <option key={r.id} value={r.id}>{r.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] uppercase tracking-[0.2em] font-black text-white/30 ml-2">Structural Slot</label>
+                                        <select 
+                                            value={editForm.slotId}
+                                            onChange={(e) => setEditForm({...editForm, slotId: Number(e.target.value)})}
+                                            className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-brand-primary/50 transition-all appearance-none"
+                                        >
+                                            {slotConfig.map(s => (
+                                                <option key={s.id} value={s.id}>Slot {s.id} ({s.startTime})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Date */}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] uppercase tracking-[0.2em] font-black text-white/30 ml-2">Reposition Date</label>
+                                    <input 
+                                        type="date"
+                                        value={editForm.date}
+                                        onChange={(e) => setEditForm({...editForm, date: e.target.value})}
+                                        className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-brand-primary/50 transition-all font-mono"
+                                    />
+                                </div>
+
+                                {selectedBooking?.type !== 'MULTI_PURPOSE' ? (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] uppercase tracking-[0.2em] font-black text-white/30 ml-2">Faculty</label>
+                                            <input 
+                                                type="text"
+                                                value={editForm.faculty}
+                                                onChange={(e) => setEditForm({...editForm, faculty: e.target.value})}
+                                                className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-brand-primary/50 transition-all"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] uppercase tracking-[0.2em] font-black text-white/30 ml-2">Subject Name</label>
+                                            <input 
+                                                type="text"
+                                                value={editForm.subjectName}
+                                                onChange={(e) => setEditForm({...editForm, subjectName: e.target.value})}
+                                                className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-brand-primary/50 transition-all"
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] uppercase tracking-[0.2em] font-black text-white/30 ml-2">Event Purpose</label>
+                                        <input 
+                                            type="text"
+                                            value={editForm.purpose}
+                                            onChange={(e) => setEditForm({...editForm, purpose: e.target.value})}
+                                            className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-brand-primary/50 transition-all font-mono"
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-[1fr_auto] gap-4 pt-6">
+                                    <button 
+                                        onClick={handleUpdate}
+                                        disabled={isSaving}
+                                        className="py-4 bg-brand-primary text-black rounded-2xl text-xs font-bold uppercase tracking-widest hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.4)] transition-all flex items-center justify-center gap-2"
+                                    >
+                                        {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                        Commit Structural Changes
+                                    </button>
+                                    <button 
+                                        onClick={handleDelete}
+                                        disabled={isDeleting}
+                                        className="w-16 h-14 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-2xl hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center shadow-lg"
+                                        title="Annihilate Booking"
+                                    >
+                                        {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={20} />}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

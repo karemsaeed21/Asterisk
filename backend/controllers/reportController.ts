@@ -61,8 +61,8 @@ export const getDailyMorningReport = async (req: Request, res: Response) => {
  */
 export const getVIPNotifications = async (req: Request, res: Response) => {
     try {
-        // High priority notifications: Branch Manager approvals on MP rooms
-        const { data: notifications, error } = await supabase
+        // 1. Fetch High priority status updates: Branch Manager approvals on MP rooms
+        const { data: approvals, error: approvalError } = await supabase
             .from('bookings')
             .select(`
                 id,
@@ -73,20 +73,42 @@ export const getVIPNotifications = async (req: Request, res: Response) => {
             .eq('status', BookingStatus.APPROVED)
             .eq('type', BookingType.MULTI_PURPOSE)
             .order('updated_at', { ascending: false })
-            .limit(10);
+            .limit(5);
 
-        if (error) throw error;
+        if (approvalError) throw approvalError;
 
-        const mappedNotifications = (notifications || []).map(doc => {
+        // 2. Fetch Direct Modification Alerts
+        const { data: alertData, error: alertError } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('type', 'BRANCH_MANAGER_MODIFICATION')
+            .order('created_at', { ascending: false })
+            .limit(5);
+
+        // Fail gracefully for alerts if table does not exist yet
+        const alerts = alertData || [];
+
+        const approvalNotifications = (approvals || []).map(doc => {
             const room = doc.rooms as any;
             return {
                 id: doc.id,
+                type: 'APPROVAL',
                 message: `Event in ${room?.name || 'Room'} has been finalized by Branch Manager.`,
                 timestamp: doc.updated_at
             };
         });
 
-        res.status(200).json({ notifications: mappedNotifications });
+        const modificationNotifications = alerts.map(doc => ({
+            id: doc.id,
+            type: 'MODIFICATION',
+            message: doc.message,
+            timestamp: doc.created_at
+        }));
+
+        const allNotifications = [...approvalNotifications, ...modificationNotifications]
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+        res.status(200).json({ notifications: allNotifications });
     } catch (error) {
         console.error('Error fetching VIP notifications:', error);
         res.status(500).json({ message: 'Internal server error' });
