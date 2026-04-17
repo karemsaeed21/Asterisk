@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Clock, CheckCircle2, XCircle, ArrowRight, Zap, Calendar as CalendarIcon, Filter } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, Role } from '../../context/AuthContext';
+import { Plus, Clock, CheckCircle2, XCircle, ArrowRight, Zap, Calendar as CalendarIcon, Filter, Shield } from 'lucide-react';
 import api from '../../api/client';
 import { Link } from 'react-router-dom';
 
@@ -169,18 +169,20 @@ const UserDashboard = () => {
                 <div className="space-y-6">
                     <h3 className="text-xl font-display font-medium px-2">Quick Commands</h3>
                     
-                    <div className="group p-8 rounded-[2.5rem] bg-gradient-to-br from-brand-secondary/20 to-transparent border border-brand-secondary/20 hover:border-brand-secondary/40 transition-all">
-                        <div className="w-12 h-12 rounded-2xl bg-brand-secondary/10 flex items-center justify-center text-brand-secondary mb-6">
-                            <Filter size={24} />
+                    {user?.role !== Role.EMPLOYEE && (
+                        <div className="group p-8 rounded-[2.5rem] bg-gradient-to-br from-brand-secondary/20 to-transparent border border-brand-secondary/20 hover:border-brand-secondary/40 transition-all">
+                            <div className="w-12 h-12 rounded-2xl bg-brand-secondary/10 flex items-center justify-center text-brand-secondary mb-6">
+                                <Filter size={24} />
+                            </div>
+                            <h4 className="text-white font-bold mb-2">Availability Hub</h4>
+                            <p className="text-white/40 text-sm leading-relaxed mb-6 font-light">
+                                Search for high-priority resources across all branches in real-time.
+                            </p>
+                            <button className="w-full py-4 text-xs font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all text-white/60 hover:text-white">
+                                Launch Search Interface
+                            </button>
                         </div>
-                        <h4 className="text-white font-bold mb-2">Availability Hub</h4>
-                        <p className="text-white/40 text-sm leading-relaxed mb-6 font-light">
-                            Search for high-priority resources across all branches in real-time.
-                        </p>
-                        <button className="w-full py-4 text-xs font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all text-white/60 hover:text-white">
-                            Launch Search Interface
-                        </button>
-                    </div>
+                    )}
 
                     <div className="p-8 rounded-[2.5rem] bg-white/2 border border-white/5">
                         <div className="flex items-center gap-3 mb-6">

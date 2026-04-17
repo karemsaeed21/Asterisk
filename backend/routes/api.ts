@@ -20,7 +20,7 @@ router.post('/auth/signup', signup);
 
 // Room Endpoints
 router.get('/rooms', authenticate, getAllRooms);
-router.get('/rooms/availability', authenticate, getRoomAvailability);
+router.get('/rooms/availability', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER, Role.SECRETARY]), getRoomAvailability);
 // Admin can dynamically add rooms
 router.post('/rooms', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), createRoom);
 
