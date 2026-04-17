@@ -30,18 +30,20 @@ export const createBooking = async (req: Request, res: Response) => {
         const slotConfig = config.slots.find((s: any) => s.id === numericSlotId);
         const validatedSlotHour = slotConfig ? slotConfig.hour : 8.5;
 
-        // 1. Strict Mutex & Conflict Prevention (Relational Query)
-        const { data: existingBookings, error: conflictError } = await supabase
-            .from('bookings')
-            .select('id')
-            .eq('room_id', roomId)
-            .eq('date', date)
-            .eq('slot_id', numericSlotId)
-            .in('status', [BookingStatus.APPROVED, BookingStatus.PENDING_BRANCH_MGR, BookingStatus.PENDING_ADMIN]);
+        // 1. Strict Mutex & Conflict Prevention (Only if room is assigned)
+        if (roomId) {
+            const { data: existingBookings, error: conflictError } = await supabase
+                .from('bookings')
+                .select('id')
+                .eq('room_id', roomId)
+                .eq('date', date)
+                .eq('slot_id', numericSlotId)
+                .in('status', [BookingStatus.APPROVED, BookingStatus.PENDING_BRANCH_MGR, BookingStatus.PENDING_ADMIN]);
 
-        if (existingBookings && existingBookings.length > 0) {
-            res.status(409).json({ message: 'Room is already occupied or pending approval for this time slot.' });
-            return;
+            if (existingBookings && existingBookings.length > 0) {
+                res.status(409).json({ message: 'Room is already occupied or pending approval for this time slot.' });
+                return;
+            }
         }
 
         // 2. Strict Time Constraints (24h / 48h)

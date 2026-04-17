@@ -37,11 +37,16 @@ const ExceptionalBookingForm = () => {
         fetchSettings();
     }, []);
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        date: string;
+        slotId: string;
+        type: string;
+        roomId: string | null;
+    }>({
         date: '',
         slotId: '',
         type: 'ACADEMIC_EXCEPTIONAL',
-        roomId: 'PENDING_ASSIGNMENT' 
+        roomId: null 
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
