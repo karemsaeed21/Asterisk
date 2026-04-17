@@ -11,6 +11,7 @@ import ExceptionalBookingForm from './components/Forms/ExceptionalBookingForm';
 import RequestTypeSelector from './pages/RequestTypeSelector';
 import AdminSettings from './pages/Admin/Settings';
 import Users from './pages/Admin/Users';
+import FixedSchedules from './pages/Admin/FixedSchedules';
 
 import History from './pages/Dashboard/History';
 
@@ -31,6 +32,7 @@ function App() {
           <Route path="history" element={<History />} />
           <Route path="admin/users" element={<Users />} />
           <Route path="admin/settings" element={<AdminSettings />} />
+          <Route path="admin/schedules" element={<FixedSchedules />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

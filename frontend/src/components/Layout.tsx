@@ -12,7 +12,8 @@ import {
     Users,
     Menu,
     X,
-    Sparkles
+    Sparkles,
+    CalendarDays
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -25,17 +26,31 @@ const Layout: React.FC = () => {
         return <Navigate to="/login" replace />;
     }
 
-    const navigation = [
-        { name: 'Insights', path: '/', icon: LayoutDashboard, roles: [Role.ADMIN, Role.BRANCH_MANAGER, Role.EMPLOYEE, Role.SECRETARY] },
-        { name: 'Approval Queue', path: '/admin/requests', icon: ShieldCheck, roles: [Role.ADMIN, Role.BRANCH_MANAGER] },
-        { name: 'Full Schedule', path: '/schedule', icon: Calendar, roles: [Role.ADMIN, Role.BRANCH_MANAGER] },
-        { name: 'Initiate Request', path: '/request/new', icon: PlusCircle, roles: [Role.EMPLOYEE, Role.SECRETARY, Role.ADMIN] },
-        { name: 'My History', path: '/history', icon: History, roles: [Role.EMPLOYEE, Role.SECRETARY, Role.ADMIN, Role.BRANCH_MANAGER] },
-        { name: 'Directory', path: '/admin/users', icon: Users, roles: [Role.ADMIN] },
-        { name: 'System Config', path: '/admin/settings', icon: Shield, roles: [Role.ADMIN] },
+    const navigationGroups = [
+        {
+            title: 'Core Operations',
+            items: [
+                { name: 'Insights', path: '/', icon: LayoutDashboard, roles: [Role.ADMIN, Role.BRANCH_MANAGER, Role.EMPLOYEE, Role.SECRETARY] },
+                { name: 'Initiate Request', path: '/request/new', icon: PlusCircle, roles: [Role.EMPLOYEE, Role.SECRETARY, Role.ADMIN] },
+                { name: 'My History', path: '/history', icon: History, roles: [Role.EMPLOYEE, Role.SECRETARY, Role.ADMIN, Role.BRANCH_MANAGER] },
+            ]
+        },
+        {
+            title: 'Room Management',
+            items: [
+                { name: 'Full Schedule', path: '/schedule', icon: Calendar, roles: [Role.ADMIN, Role.BRANCH_MANAGER] },
+                { name: 'Semester Schedules', path: '/admin/schedules', icon: CalendarDays, roles: [Role.ADMIN] },
+                { name: 'Approval Queue', path: '/admin/requests', icon: ShieldCheck, roles: [Role.ADMIN, Role.BRANCH_MANAGER] },
+            ]
+        },
+        {
+            title: 'System Access',
+            items: [
+                { name: 'Directory', path: '/admin/users', icon: Users, roles: [Role.ADMIN] },
+                { name: 'System Config', path: '/admin/settings', icon: Shield, roles: [Role.ADMIN] },
+            ]
+        }
     ];
-
-    const filteredNav = navigation.filter(item => item.roles.includes(user!.role));
 
     return (
         <div className="min-h-screen bg-bg-deep text-white flex relative overflow-hidden">
@@ -60,33 +75,48 @@ const Layout: React.FC = () => {
                             <span className="font-display font-bold text-2xl tracking-tighter">Asterisk</span>
                         </div>
 
-                        <nav className="flex-1 space-y-1">
-                            {filteredNav.map((item) => {
-                                const isActive = location.pathname === item.path;
-                                return (
-                                    <Link 
-                                        key={item.name}
-                                        to={item.path}
-                                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group relative ${
-                                            isActive 
-                                            ? 'text-white' 
-                                            : 'text-white/30 hover:text-white/60 hover:bg-white/[0.02]'
-                                        }`}
-                                    >
-                                        {isActive && (
-                                            <motion.div 
-                                                layoutId="nav-active"
-                                                className="absolute inset-0 bg-white/[0.05] border border-white/10 rounded-2xl"
-                                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                            />
-                                        )}
-                                        <item.icon size={20} className={`relative z-10 transition-colors ${isActive ? 'text-brand-primary' : ''}`} />
-                                        <span className="relative z-10 font-medium text-sm tracking-tight">{item.name}</span>
-                                    </Link>
-                                );
-                            })}
-                        </nav>
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                            <nav className="space-y-8">
+                                {navigationGroups.map((group) => {
+                                    const filteredItems = group.items.filter(item => item.roles.includes(user!.role));
+                                    if (filteredItems.length === 0) return null;
 
+                                    return (
+                                        <div key={group.title} className="space-y-3">
+                                            <div className="px-5 text-[10px] font-black uppercase tracking-widest text-white/20">
+                                                {group.title}
+                                            </div>
+                                            <div className="space-y-1">
+                                                {filteredItems.map((item) => {
+                                                    const isActive = location.pathname === item.path;
+                                                    return (
+                                                        <Link 
+                                                            key={item.name}
+                                                            to={item.path}
+                                                            className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group relative ${
+                                                                isActive 
+                                                                ? 'text-white' 
+                                                                : 'text-white/30 hover:text-white/60 hover:bg-white/[0.02]'
+                                                            }`}
+                                                        >
+                                                            {isActive && (
+                                                                <motion.div 
+                                                                    layoutId="nav-active"
+                                                                    className="absolute inset-0 bg-white/[0.05] border border-white/10 rounded-2xl"
+                                                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                                                />
+                                                            )}
+                                                            <item.icon size={20} className={`relative z-10 transition-colors ${isActive ? 'text-brand-primary' : ''}`} />
+                                                            <span className="relative z-10 font-medium text-sm tracking-tight">{item.name}</span>
+                                                        </Link>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </nav>
+                        </div>
                         <div className="mt-auto pt-8 border-t border-white/5 space-y-6">
                             <div className="px-5 py-5 rounded-3xl bg-white/[0.03] border border-white/[0.05] relative overflow-hidden group">
                                 <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
