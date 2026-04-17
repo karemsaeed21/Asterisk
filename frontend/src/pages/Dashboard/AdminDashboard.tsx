@@ -18,12 +18,16 @@ import api from '../../api/client';
 import WeeklyGrid from '../../components/Calendar/WeeklyGrid';
 import AvailabilitySearch from '../../components/Admin/AvailabilitySearch';
 import MorningReportWidget from '../../components/Admin/MorningReportWidget';
+import RejectionModal from '../../components/Admin/RejectionModal';
+import MonthlyHeatmap from '../../components/Calendar/MonthlyHeatmap';
 
 const AdminDashboard = () => {
     const { user } = useAuth();
     const [pendingRequests, setPendingRequests] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [stats, setStats] = useState({ rooms: 0, pending: 0, approvalsToday: 0 });
+    const [rejectionBookingId, setRejectionBookingId] = useState<string | null>(null);
+    const [viewMode, setViewMode] = useState<'WEEKLY' | 'MONTHLY'>('WEEKLY');
 
     useEffect(() => {
         const fetchData = async () => {
@@ -54,6 +58,13 @@ const AdminDashboard = () => {
             setPendingRequests(prev => prev.filter(r => r.id !== id));
         } catch (err) {
             alert('Approval failed');
+        }
+    };
+
+    const handleRejectionSuccess = () => {
+        if (rejectionBookingId) {
+            setPendingRequests(prev => prev.filter(r => r.id !== rejectionBookingId));
+            setRejectionBookingId(null);
         }
     };
 
@@ -123,9 +134,23 @@ const AdminDashboard = () => {
                                 Sector Synchronization
                                 <span className="px-2 py-0.5 rounded-lg bg-emerald-500/10 text-[9px] font-black text-emerald-500 uppercase tracking-widest border border-emerald-500/20">Active</span>
                             </h3>
+                            <div className="flex bg-white/5 p-1 rounded-xl border border-white/5">
+                                <button 
+                                    onClick={() => setViewMode('WEEKLY')}
+                                    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'WEEKLY' ? 'bg-white text-black shadow-lg' : 'text-white/40 hover:text-white'}`}
+                                >
+                                    Weekly Sync
+                                </button>
+                                <button 
+                                    onClick={() => setViewMode('MONTHLY')}
+                                    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'MONTHLY' ? 'bg-white text-black shadow-lg' : 'text-white/40 hover:text-white'}`}
+                                >
+                                    Monthly Analytics
+                                </button>
+                            </div>
                         </div>
-                        <div className="overflow-hidden rounded-[3rem] border border-white/5 shadow-2xl">
-                             <WeeklyGrid />
+                        <div className="overflow-hidden rounded-[3rem] border border-white/5 shadow-2xl min-h-[500px]">
+                             {viewMode === 'WEEKLY' ? <WeeklyGrid /> : <MonthlyHeatmap />}
                         </div>
                     </section>
 
@@ -203,7 +228,10 @@ const AdminDashboard = () => {
                                     >
                                         Authorize
                                     </button>
-                                    <button className="px-6 py-4 bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-rose-500 hover:text-white transition-all">
+                                    <button 
+                                        onClick={() => setRejectionBookingId(req.id)}
+                                        className="px-6 py-4 bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-rose-500 hover:text-white transition-all"
+                                    >
                                         Deny
                                     </button>
                                 </div>
@@ -221,6 +249,14 @@ const AdminDashboard = () => {
                     </div>
                 </aside>
             </div>
+
+            {rejectionBookingId && (
+                <RejectionModal 
+                    bookingId={rejectionBookingId}
+                    onClose={() => setRejectionBookingId(null)}
+                    onSuccess={handleRejectionSuccess}
+                />
+            )}
         </div>
     );
 };

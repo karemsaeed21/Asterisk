@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { login } from '../controllers/authController.js';
+import { login, signup } from '../controllers/authController.js';
 import { getAllRooms, getRoomAvailability, createRoom } from '../controllers/roomController.js';
 import { createBooking, getMyRequests } from '../controllers/bookingController.js';
 import { approveBooking, rejectBookingWithAlternatives, getPendingRequests } from '../controllers/adminController.js';
 import { getDailyMorningReport, getVIPNotifications } from '../controllers/reportController.js';
 import { getSettings, updateSettings } from '../controllers/settingsController.js';
+import { getAllUsers, updateUserOverride, createDelegation, revokeDelegation, getPendingUsers, approveUser, rejectUser } from '../controllers/userController.js';
 import { authenticate, requireRole } from '../middleware/authMiddleware.js';
 import { Role } from '../types/index.js';
 
@@ -12,6 +13,7 @@ const router = Router();
 
 // Auth Endpoints
 router.post('/auth/login', login);
+router.post('/auth/signup', signup);
 
 // Room Endpoints
 router.get('/rooms', authenticate, getAllRooms);
@@ -35,5 +37,16 @@ router.get('/admin/notifications/vip', authenticate, requireRole([Role.ADMIN]), 
 // System Settings
 router.get('/admin/settings', authenticate, requireRole([Role.ADMIN]), getSettings);
 router.put('/admin/settings', authenticate, requireRole([Role.ADMIN]), updateSettings);
+
+// User Management (Admin Only)
+router.get('/admin/users', authenticate, requireRole([Role.ADMIN]), getAllUsers);
+router.get('/admin/users/pending', authenticate, requireRole([Role.ADMIN]), getPendingUsers);
+router.put('/admin/users/:userId/overrides', authenticate, requireRole([Role.ADMIN]), updateUserOverride);
+router.post('/admin/users/:userId/approve', authenticate, requireRole([Role.ADMIN]), approveUser);
+router.delete('/admin/users/:userId/reject', authenticate, requireRole([Role.ADMIN]), rejectUser);
+
+// Delegation (Self-service or Admin managed)
+router.post('/delegations', authenticate, createDelegation);
+router.patch('/delegations/:delegationId/revoke', authenticate, revokeDelegation);
 
 export default router;
