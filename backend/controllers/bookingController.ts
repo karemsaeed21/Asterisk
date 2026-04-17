@@ -63,6 +63,18 @@ export const createBooking = async (req: Request, res: Response) => {
             return;
         }
 
+        // 3. Secretary Restrictions (Multi-Purpose Only)
+        if (user.role === Role.SECRETARY) {
+            if (diffInHours < 48) {
+                res.status(403).json({ message: 'College Secretary must book at least 48 hours in advance.' });
+                return;
+            }
+            if (type !== BookingType.MULTI_PURPOSE) {
+                res.status(403).json({ message: 'College Secretary is restricted to Multi-Purpose bookings only.' });
+                return;
+            }
+        }
+
         // 3. Routing Approval
         let initialStatus: BookingStatus = BookingStatus.PENDING_ADMIN;
         if (user.role === Role.BRANCH_MANAGER) {

@@ -2,9 +2,12 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, Star, ArrowRight, Zap, Target } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth, Role } from '../context/AuthContext';
 
 const RequestTypeSelector = () => {
-    const types = [
+    const { user } = useAuth();
+    
+    const allTypes = [
         {
             title: 'Exceptional',
             subtitle: 'Lecture & Lab Synchronization',
@@ -14,7 +17,8 @@ const RequestTypeSelector = () => {
             color: 'text-brand-primary',
             bg: 'bg-brand-primary/10',
             border: 'border-brand-primary/20',
-            glow: 'shadow-brand-primary/20'
+            glow: 'shadow-brand-primary/20',
+            restrictedRoles: [Role.SECRETARY]
         },
         {
             title: 'Multi-Purpose',
@@ -25,9 +29,12 @@ const RequestTypeSelector = () => {
             color: 'text-brand-secondary',
             bg: 'bg-brand-secondary/10',
             border: 'border-brand-secondary/20',
-            glow: 'shadow-brand-secondary/20'
+            glow: 'shadow-brand-secondary/20',
+            restrictedRoles: []
         }
     ];
+
+    const types = allTypes.filter(t => !t.restrictedRoles.includes(user!.role));
 
     return (
         <div className="max-w-6xl mx-auto py-24 space-y-20">

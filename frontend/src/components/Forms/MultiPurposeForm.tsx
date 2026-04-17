@@ -10,6 +10,7 @@ import {
     CheckCircle2,
     Smartphone,
     Briefcase,
+    Zap,
     Shield,
     Info,
     ChevronRight,
@@ -23,6 +24,8 @@ const MultiPurposeForm = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const isEmployee = user?.role === Role.EMPLOYEE;
+    const isSecretary = user?.role === Role.SECRETARY;
+    const isBlind = isEmployee || isSecretary;
     const [rooms, setRooms] = useState<any[]>([]);
     const [slotConfig, setSlotConfig] = useState<any[]>([]);
     const [isLoadingData, setIsLoadingData] = useState(true);
@@ -141,7 +144,7 @@ const MultiPurposeForm = () => {
                         </div>
 
                         <div className="grid md:grid-cols-2 gap-8">
-                            {!isEmployee ? (
+                            {!isBlind ? (
                                 <div className="space-y-3">
                                     <label className="form-label">Sector Assignment</label>
                                     <select 
@@ -362,9 +365,11 @@ const MultiPurposeForm = () => {
 
                         <div className="p-8 rounded-[2.5rem] bg-white/[0.01] border border-dashed border-white/5 text-center">
                             <p className="text-[10px] text-white/20 font-black uppercase tracking-[0.2em] leading-relaxed">
-                                {isEmployee 
-                                    ? "Note: Employees cannot select sectors directly. Branch Manager will assign the most suitable available resource." 
-                                    : "Note: Multi-purpose requests require Branch Manager clearance. Temporal window: 48h Minimum."}
+                                {isSecretary 
+                                    ? "Note: College Secretary requests require Branch Manager clearance. Temporal window: 48h Minimum."
+                                    : isEmployee 
+                                        ? "Note: Employees cannot select sectors directly. Branch Manager will assign the most suitable available resource." 
+                                        : "Note: Multi-purpose requests require Branch Manager clearance. Temporal window: 48h Minimum."}
                             </p>
                         </div>
                     </div>

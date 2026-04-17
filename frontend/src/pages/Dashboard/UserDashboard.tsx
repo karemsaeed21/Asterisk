@@ -169,7 +169,7 @@ const UserDashboard = () => {
                 <div className="space-y-6">
                     <h3 className="text-xl font-display font-medium px-2">Quick Commands</h3>
                     
-                    {user?.role !== Role.EMPLOYEE && (
+                    {user?.role !== Role.EMPLOYEE && user?.role !== Role.SECRETARY && (
                         <div className="group p-8 rounded-[2.5rem] bg-gradient-to-br from-brand-secondary/20 to-transparent border border-brand-secondary/20 hover:border-brand-secondary/40 transition-all">
                             <div className="w-12 h-12 rounded-2xl bg-brand-secondary/10 flex items-center justify-center text-brand-secondary mb-6">
                                 <Filter size={24} />
