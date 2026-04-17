@@ -249,7 +249,6 @@ const AdminDashboard = () => {
                     </div>
                 </aside>
             </div>
-            </div>
 
             {rejectionBookingId && (
                 <RejectionModal 

@@ -14,7 +14,9 @@ import {
     Lock,
     Calendar,
     UserCheck,
-    Check
+    Check,
+    RefreshCw,
+    Info
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
@@ -215,7 +217,6 @@ const UserManagement = () => {
                     <p className="text-[10px] uppercase tracking-[0.4em] font-black text-white/20">Operational Synchronization</p>
                     <p className="text-xs text-white/10 font-medium italic">"Identity integrity is the foundation of academic resource security."</p>
                 </div>
-            </div>
             </div>
 
             {/* Override Modal */}
