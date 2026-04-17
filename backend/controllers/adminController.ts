@@ -1,16 +1,16 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/supabase.js';
-import { BookingStatus, BookingRejection, BookingType, AASTSlot } from '../types/index.js';
+import { BookingStatus, BookingRejection, BookingType, AASTSlot, Role } from '../types/index.js';
 
 export const approveBooking = async (req: Request, res: Response) => {
     try {
         const { bookingId } = req.params as { bookingId: string };
         const user = req.user!;
 
-        // 1. Fetch current status
+        // 1. Fetch current status and type
         const { data: booking, error: fetchError } = await supabase
             .from('bookings')
-            .select('status')
+            .select('status, type')
             .eq('id', bookingId)
             .single();
 
@@ -22,21 +22,27 @@ export const approveBooking = async (req: Request, res: Response) => {
         let nextStatus: BookingStatus;
         let responseMessage: string;
 
-        // 2. Determine Next Status based on current status and role
+        // 2. Determine Next Status based on current status, type, and role
         if (booking.status === BookingStatus.PENDING_ADMIN) {
-            if (user.role !== 'ADMIN' && user.role !== 'BRANCH_MANAGER') {
+            if (user.role !== Role.ADMIN && user.role !== Role.BRANCH_MANAGER) {
                 res.status(403).json({ message: 'Only an Admin or Branch Manager can provide preliminary approval.' });
                 return;
             }
-            nextStatus = BookingStatus.PENDING_BRANCH_MGR;
-            responseMessage = 'Preliminary Admin approval granted. Escalated to Branch Manager.';
+            
+            if (booking.type === BookingType.MULTI_PURPOSE) {
+                nextStatus = BookingStatus.PENDING_BRANCH_MGR;
+                responseMessage = 'Preliminary Admin approval granted. Escalated to Branch Manager for final sign-off.';
+            } else {
+                nextStatus = BookingStatus.APPROVED;
+                responseMessage = 'Project authorized. Academic Exceptional booking confirmed.';
+            }
         } else if (booking.status === BookingStatus.PENDING_BRANCH_MGR) {
-            if (user.role !== 'BRANCH_MANAGER') {
-                res.status(403).json({ message: 'Only a Branch Manager can provide final approval.' });
+            if (user.role !== Role.BRANCH_MANAGER) {
+                res.status(403).json({ message: 'Only a Branch Manager can provide final approval for this resource.' });
                 return;
             }
             nextStatus = BookingStatus.APPROVED;
-            responseMessage = 'Final Branch Manager approval granted. Booking confirmed.';
+            responseMessage = 'Final Branch Manager approval granted. Multi-Purpose booking confirmed.';
         } else {
             res.status(400).json({ message: 'Booking is not in a pending state that requires approval.' });
             return;
@@ -105,10 +111,11 @@ export const getPendingRequests = async (req: Request, res: Response) => {
         const user = req.user!;
         let statusToFetch: BookingStatus[] = [];
 
-        if (user.role === 'ADMIN') {
+        if (user.role === Role.ADMIN) {
             statusToFetch = [BookingStatus.PENDING_ADMIN];
-        } else if (user.role === 'BRANCH_MANAGER') {
-            statusToFetch = [BookingStatus.PENDING_BRANCH_MGR];
+        } else if (user.role === Role.BRANCH_MANAGER) {
+            // Branch Manager can act on both levels
+            statusToFetch = [BookingStatus.PENDING_ADMIN, BookingStatus.PENDING_BRANCH_MGR];
         }
 
         const { data: requests, error } = await supabase
@@ -362,6 +369,29 @@ export const updateBookingData = async (req: Request, res: Response) => {
         if (error) throw error;
 
         res.status(200).json({ message: 'Booking updated successfully', booking: data[0] });
+
+        // Immediate Notification logic if Branch Manager is the one modifying
+        if (req.user?.role === Role.BRANCH_MANAGER) {
+            try {
+                // Fetch room name for a better notification message
+                const { data: bookingDetails } = await supabase
+                    .from('bookings')
+                    .select('rooms(name)')
+                    .eq('id', bookingId)
+                    .single();
+
+                const roomName = (bookingDetails?.rooms as any)?.name || 'Unknown Room';
+
+                await supabase.from('notifications').insert({
+                    type: 'BRANCH_MANAGER_MODIFICATION',
+                    booking_id: bookingId,
+                    message: `Branch Manager ${req.user.name} directly modified the schedule for ${roomName}.`,
+                    created_at: new Date().toISOString()
+                });
+            } catch (notifyError) {
+                console.error('Non-blocking notification error:', notifyError);
+            }
+        }
     } catch (error) {
         console.error('Error updating booking:', error);
         res.status(500).json({ message: 'Internal server error' });

@@ -22,7 +22,7 @@ router.post('/auth/signup', signup);
 router.get('/rooms', authenticate, getAllRooms);
 router.get('/rooms/availability', authenticate, getRoomAvailability);
 // Admin can dynamically add rooms
-router.post('/rooms', authenticate, requireRole([Role.ADMIN]), createRoom);
+router.post('/rooms', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), createRoom);
 
 // Booking Endpoints
 router.post('/bookings', authenticate, createBooking);
@@ -32,31 +32,31 @@ router.get('/bookings/my-requests', authenticate, getMyRequests);
 router.get('/admin/requests/pending', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), getPendingRequests);
 router.post('/admin/bookings/:bookingId/approve', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), approveBooking);
 router.post('/admin/bookings/:bookingId/reject', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), rejectBookingWithAlternatives);
-router.put('/admin/bookings/:bookingId', authenticate, requireRole([Role.ADMIN]), updateBookingData);
-router.delete('/admin/bookings/:bookingId', authenticate, requireRole([Role.ADMIN]), deleteBooking);
+router.put('/admin/bookings/:bookingId', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), updateBookingData);
+router.delete('/admin/bookings/:bookingId', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), deleteBooking);
 
 // Admin Fixed Schedules
-router.post('/admin/schedules/fixed', authenticate, requireRole([Role.ADMIN]), createFixedSchedule);
-router.delete('/admin/schedules/fixed', authenticate, requireRole([Role.ADMIN]), deleteFixedSchedule);
-router.get('/admin/schedules/fixed', authenticate, requireRole([Role.ADMIN]), getFixedSchedules);
+router.post('/admin/schedules/fixed', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), createFixedSchedule);
+router.delete('/admin/schedules/fixed', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), deleteFixedSchedule);
+router.get('/admin/schedules/fixed', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), getFixedSchedules);
 
 // Global Schedule Grid
 router.get('/admin/schedules/daily', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), getDailySchedule);
 
 // Reports & Notifications
-router.get('/admin/reports/morning', authenticate, requireRole([Role.ADMIN]), getDailyMorningReport);
-router.get('/admin/notifications/vip', authenticate, requireRole([Role.ADMIN]), getVIPNotifications);
+router.get('/admin/reports/morning', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), getDailyMorningReport);
+router.get('/admin/notifications/vip', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), getVIPNotifications);
 
 // System Settings
-router.get('/admin/settings', authenticate, requireRole([Role.ADMIN]), getSettings);
-router.put('/admin/settings', authenticate, requireRole([Role.ADMIN]), updateSettings);
+router.get('/admin/settings', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), getSettings);
+router.put('/admin/settings', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), updateSettings);
 
 // User Management (Admin Only)
-router.get('/admin/users', authenticate, requireRole([Role.ADMIN]), getAllUsers);
-router.get('/admin/users/pending', authenticate, requireRole([Role.ADMIN]), getPendingUsers);
-router.put('/admin/users/:userId/overrides', authenticate, requireRole([Role.ADMIN]), updateUserOverride);
-router.post('/admin/users/:userId/approve', authenticate, requireRole([Role.ADMIN]), approveUser);
-router.delete('/admin/users/:userId/reject', authenticate, requireRole([Role.ADMIN]), rejectUser);
+router.get('/admin/users', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), getAllUsers);
+router.get('/admin/users/pending', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), getPendingUsers);
+router.put('/admin/users/:userId/overrides', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), updateUserOverride);
+router.post('/admin/users/:userId/approve', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), approveUser);
+router.delete('/admin/users/:userId/reject', authenticate, requireRole([Role.ADMIN, Role.BRANCH_MANAGER]), rejectUser);
 
 // Delegation (Self-service or Admin managed)
 router.post('/delegations', authenticate, createDelegation);

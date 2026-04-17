@@ -89,13 +89,13 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 
 export const requireRole = (allowedRoles: Role[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user) {
-       res.status(401).json({ message: 'Unauthorized' });
+    if (!req.user || !req.user.role) {
+       res.status(401).json({ message: 'Unauthorized: Missing role' });
        return;
     }
     
-    // Admin naturally overrides or has full access
-    if (req.user.role === Role.ADMIN) {
+    // Admin and Branch Manager naturally override or have full access
+    if (req.user.role === Role.ADMIN || req.user.role === Role.BRANCH_MANAGER) {
       return next();
     }
 
@@ -115,7 +115,7 @@ export const requireFeature = (featureName: keyof UserPermissionOverrides) => {
              return;
         }
 
-        if (req.user.role === Role.ADMIN) {
+        if (req.user.role === Role.ADMIN || req.user.role === Role.BRANCH_MANAGER) {
             return next();
         }
 
